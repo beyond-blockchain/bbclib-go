@@ -7,7 +7,7 @@ bbclib-go
 [![Maintainability](https://api.codeclimate.com/v1/badges/0c523f5a3d71b77aad46/maintainability)](https://codeclimate.com/github/beyond-blockchain/bbclib-go/maintainability)
 
 Golang implementation of bbc1.core.bbclib and bbc1.core.libs modules in https://github.com/beyond-blockchain/bbc1.
-This reposigory is originally from https://github.com/beyond-blockchain/bbclib-go
+This reposigory is originally from https://github.com/quvox/bbclib-go
 
 
 ### Features
