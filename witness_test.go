@@ -46,7 +46,9 @@ func TestWitnessPackUnpack(t *testing.T) {
 		}
 		t.Logf("Packed data: %x", dat)
 
+		txobj2 := BBcTransaction{IDLength: defaultIDLength}
 		obj2 := BBcWitness{IDLength: defaultIDLength}
+		obj2.SetTransaction(&txobj2)
 		obj2.Unpack(&dat)
 		t.Log("--------------------------------------")
 		t.Logf("id_length: %d", obj2.IDLength)

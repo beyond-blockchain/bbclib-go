@@ -153,7 +153,7 @@ func (p *BBcTransaction) AddCrossRef(obj *BBcCrossRef) {
 // AddSignature adds the BBcSignature object for the specified userID in the transaction object
 func (p *BBcTransaction) AddSignature(userID *[]byte, sig *BBcSignature) {
 	for i := range p.SigIndices {
-		if reflect.DeepEqual(p.SigIndices[i], userID) {
+		if reflect.DeepEqual(p.SigIndices[i], *userID) {
 			p.Signatures[i] = sig
 			return
 		}
@@ -173,7 +173,26 @@ func (p *BBcTransaction) GetSigIndex(userID []byte) int {
 		}
 	}
 	p.SigIndices = append(p.SigIndices, userID)
+	sig := BBcSignature{}
+	p.Signatures = append(p.Signatures, &sig)
 	return i + 1
+}
+
+// SetSigIndex simply sets the index of signature list for the specified userID
+func (p *BBcTransaction) SetSigIndex(userID []byte, idx int) {
+	var i = -1
+	for i = range p.SigIndices {
+		if reflect.DeepEqual(p.SigIndices[i], userID) {
+			return
+		}
+	}
+	if len(p.SigIndices)-1 < idx {
+		for i:=0; i<idx+1; i++ {
+			val := make([]byte, p.IDLength)
+			p.SigIndices = append(p.SigIndices, val)
+		}
+	}
+	p.SigIndices[idx] = userID
 }
 
 // Sign TransactionID using private key in the given keypair
@@ -412,6 +431,7 @@ func (p *BBcTransaction) unpackReference(buf *bytes.Buffer) error {
 			return err2
 		}
 		obj := BBcReference{IDLength: p.IDLength}
+		obj.SetTransaction(p)
 		obj.Unpack(&data)
 		p.References = append(p.References, &obj)
 	}
@@ -450,6 +470,7 @@ func (p *BBcTransaction) unpackWitness(buf *bytes.Buffer) error {
 		}
 		data, _ := GetBytes(buf, int(size))
 		p.Witness = &BBcWitness{IDLength: p.IDLength}
+		p.Witness.SetTransaction(p)
 		p.Witness.Unpack(&data)
 	}
 	return nil
