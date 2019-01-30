@@ -118,6 +118,7 @@ func (p *BBcWitness) Unpack(dat *[]byte) error {
 			return err2
 		}
 		p.SigIndices = append(p.SigIndices, int(idx))
+		p.Transaction.SetSigIndex(userID, int(idx))
 	}
 
 	return nil

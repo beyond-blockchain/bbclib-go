@@ -80,9 +80,7 @@ func TestBBcLibUtilitiesTx2(t *testing.T) {
 		AddEventAssetFile(txobj2, 1, &assetGroupID, &u2, &filedat)
 
 		AddReference(txobj2, &assetGroupID, txobj, 0)
-		txobj2.References[0].AddApprover(&u1)
 		AddReference(txobj2, &assetGroupID, txobj, 1)
-		txobj2.References[1].AddApprover(&u2)
 
 		crs := BBcCrossRef{}
 		txobj2.AddCrossRef(&crs)

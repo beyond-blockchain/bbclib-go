@@ -43,6 +43,7 @@ type (
 		TransactionID   []byte
 		EventIndexInRef uint16
 		SigIndices      []int
+		sigIndicesOptions [][]byte
 		Transaction     *BBcTransaction
 		RefTransaction  *BBcTransaction
 		RefEvent        BBcEvent
@@ -76,40 +77,32 @@ func (p *BBcReference) Add(assetGroupID *[]byte, refTransaction *BBcTransaction,
 		p.RefTransaction = refTransaction
 		p.TransactionID = refTransaction.TransactionID[:p.IDLength]
 		p.RefEvent = *p.RefTransaction.Events[p.EventIndexInRef]
-	}
-}
 
-// AddApprover makes a memo for managing approvers who sign this BBcTransaction object
-func (p *BBcReference) AddApprover(userID *[]byte) error {
-	if p.Transaction == nil {
-		return errors.New("transaction must be set")
-	}
-	if p.RefTransaction == nil {
-		return errors.New("reference_transaction must be set")
-	}
-
-	flag := false
-	for _, m := range p.RefEvent.MandatoryApprovers {
-		if reflect.DeepEqual(m, *userID) {
-			flag = true
-			break
-		}
-	}
-	if !flag {
-		for _, o := range p.RefEvent.OptionApprovers {
-			if reflect.DeepEqual(o, *userID) {
-				flag = true
-				break
+		if len(p.SigIndices) == 0 {
+			for i := range p.RefEvent.MandatoryApprovers {
+				idx := p.Transaction.GetSigIndex(p.RefEvent.MandatoryApprovers[i])
+				p.SigIndices = append(p.SigIndices, idx)
+			}
+			for i:=0; i<int(p.RefEvent.OptionApproverNumNumerator); i++ {
+				dummyId := GetRandomValue(p.Transaction.IDLength)
+				p.sigIndicesOptions = append(p.sigIndicesOptions, dummyId)
+				idx := p.Transaction.GetSigIndex(dummyId)
+				p.SigIndices = append(p.SigIndices, idx)
+			}
+		} else {
+			j := 0
+			for i := range p.RefEvent.MandatoryApprovers {
+				p.Transaction.SetSigIndex(p.RefEvent.MandatoryApprovers[i], p.SigIndices[j])
+				j += 1
+			}
+			for i:=0; i<int(p.RefEvent.OptionApproverNumNumerator); i++ {
+				dummyId := GetRandomValue(p.Transaction.IDLength)
+				p.sigIndicesOptions = append(p.sigIndicesOptions, dummyId)
+				p.Transaction.SetSigIndex(dummyId, p.SigIndices[j])
+				j += 1
 			}
 		}
 	}
-	if !flag {
-		return errors.New("the user is not specified as approver")
-	}
-
-	idx := p.Transaction.GetSigIndex(*userID)
-	p.SigIndices = append(p.SigIndices, idx)
-	return nil
 }
 
 // AddSignature sets the BBcSignature object in the object
@@ -117,8 +110,22 @@ func (p *BBcReference) AddSignature(userID *[]byte, sig *BBcSignature) error {
 	if p.Transaction == nil {
 		return errors.New("transaction must be set")
 	}
-	p.Transaction.AddSignature(userID, sig)
-	return nil
+	for _, m := range p.RefEvent.MandatoryApprovers {
+		if reflect.DeepEqual(&m, userID) {
+			p.Transaction.AddSignature(userID, sig)
+			return nil
+		}
+	}
+	for _, o := range p.RefEvent.OptionApprovers {
+		if reflect.DeepEqual(o, *userID) {
+			uid := make([]byte, p.Transaction.IDLength)
+			copy(uid, p.sigIndicesOptions[0])
+			p.sigIndicesOptions = p.sigIndicesOptions[1:]
+			p.Transaction.AddSignature(&uid, sig)
+			return nil
+		}
+	}
+	return errors.New("the user is not specified as approver")
 }
 
 // Pack returns the binary data of the BBcReference object
