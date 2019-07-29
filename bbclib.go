@@ -48,9 +48,59 @@ const (
 	FormatZlib  = 0x0010
 )
 
+type (
+	BBcIdConfig struct {
+		TransactionIdLength	  int
+		UserIdLength          int
+		AssetGroupIdLength    int
+		AssetIdLength         int
+		NonceLength           int
+	}
+)
+
 const (
 	defaultIDLength = 32
 )
+
+var IdLengthConfig = BBcIdConfig {
+	TransactionIdLength: defaultIDLength,
+	UserIdLength: defaultIDLength,
+	AssetGroupIdLength: defaultIDLength,
+	AssetIdLength: defaultIDLength,
+	NonceLength: defaultIDLength,
+}
+
+
+// Configure various ID length
+func ConfigureIdLength(conf *BBcIdConfig) {
+	if conf.TransactionIdLength > 0 && conf.TransactionIdLength < 33 {
+		IdLengthConfig.TransactionIdLength = conf.TransactionIdLength
+	}
+	if conf.UserIdLength > 0 && conf.UserIdLength < 33 {
+		IdLengthConfig.UserIdLength = conf.UserIdLength
+	}
+	if conf.AssetGroupIdLength > 0 && conf.AssetGroupIdLength < 33 {
+		IdLengthConfig.AssetGroupIdLength = conf.AssetGroupIdLength
+	}
+	if conf.AssetIdLength > 0 && conf.AssetIdLength < 33 {
+		IdLengthConfig.AssetIdLength = conf.AssetIdLength
+	}
+	if conf.NonceLength > 0 && conf.NonceLength < 33 {
+		IdLengthConfig.NonceLength = conf.NonceLength
+	}
+}
+
+// Configure all kind of ID length with the same value
+func ConfigureIdLengthAll(length int) {
+	if length > 0 && length < 33 {
+		IdLengthConfig.TransactionIdLength = length
+		IdLengthConfig.UserIdLength = length
+		IdLengthConfig.AssetGroupIdLength = length
+		IdLengthConfig.AssetIdLength = length
+		IdLengthConfig.NonceLength = length
+	}
+}
+
 
 /*
 Serialize BBcTransaction object into packed data
@@ -90,7 +140,7 @@ func Deserialize(dat []byte) (*BBcTransaction, error) {
 		return nil, err
 	}
 
-	txdat, err := GetBytes(buf, len(dat)-2)
+	txdat, _, err := GetBytes(buf, len(dat)-2)
 	if err != nil {
 		return nil, err
 	}
@@ -113,8 +163,9 @@ func Deserialize(dat []byte) (*BBcTransaction, error) {
 }
 
 // MakeTransaction is a utility for making simple BBcTransaction object with BBcEvent, BBcRelation or/and BBcWitness
-func MakeTransaction(eventNum, relationNum int, witness bool, idLength int) *BBcTransaction {
-	txobj := BBcTransaction{Version: 1, IDLength: idLength}
+func MakeTransaction(eventNum, relationNum int, witness bool) *BBcTransaction {
+	txobj := BBcTransaction{Version: 1}
+	txobj.SetIdLengthConf(&IdLengthConfig)
 	txobj.Timestamp = time.Now().UnixNano() / int64(time.Microsecond)
 
 	for i := 0; i < eventNum; i++ {
@@ -243,14 +294,16 @@ func AddEventAssetBodyObject(transaction *BBcTransaction, eventIdx int, assetGro
 	}
 	addInEvent(transaction, eventIdx, assetGroupID, userID)
 	if body != "" {
-		transaction.Events[eventIdx].Asset.AddBodyObject(body)
+		_ = transaction.Events[eventIdx].Asset.AddBodyObject(body)
 	}
 }
 
 // MakeRelationWithAsset is a utility for making simple BBcTransaction object with BBcRelation with BBcAsset
 func MakeRelationWithAsset(assetGroupID, userID *[]byte, assetBodyString string, assetBodyObject interface{}, assetFile *[]byte, idLength int) *BBcRelation {
-	rtn := BBcRelation{IDLength: idLength}
-	ast := BBcAsset{IDLength: idLength}
+	rtn := BBcRelation{}
+	rtn.SetIdLengthConf(&IdLengthConfig)
+	ast := BBcAsset{}
+	ast.SetIdLengthConf(&IdLengthConfig)
 	ast.Add(userID)
 	rtn.Add(assetGroupID, &ast)
 	if assetFile != nil {

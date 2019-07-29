@@ -36,10 +36,10 @@ This object should be used if BBcRelation is used or a certain user wants to sig
 */
 type (
 	BBcWitness struct {
-		IDLength    int
-		UserIDs     [][]byte
-		SigIndices  []int
-		Transaction *BBcTransaction
+		IdLengthConf *BBcIdConfig
+		UserIDs      [][]byte
+		SigIndices   []int
+		Transaction  *BBcTransaction
 	}
 )
 
@@ -58,6 +58,11 @@ func (p *BBcWitness) Stringer() string {
 	return ret
 }
 
+// Set ID length configuration
+func (p *BBcWitness) SetIdLengthConf(conf * BBcIdConfig) {
+	p.IdLengthConf = conf
+}
+
 // SetTransaction links the BBcWitness object to the parent transaction object
 func (p *BBcWitness) SetTransaction(txobj *BBcTransaction) {
 	p.Transaction = txobj
@@ -69,8 +74,10 @@ func (p *BBcWitness) AddWitness(userID *[]byte) error {
 	if p.Transaction == nil {
 		return errors.New("transaction must be set")
 	}
-	p.UserIDs = append(p.UserIDs, (*userID)[:p.IDLength])
-	idx := p.Transaction.GetSigIndex(*userID)
+	uid := make([]byte, int(p.IdLengthConf.UserIdLength))
+	copy(uid, *userID)
+	p.UserIDs = append(p.UserIDs, uid)
+	idx := p.Transaction.GetSigIndex(uid)
 	p.SigIndices = append(p.SigIndices, idx)
 	return nil
 }
@@ -80,7 +87,9 @@ func (p *BBcWitness) AddSignature(userID *[]byte, sig *BBcSignature) error {
 	if p.Transaction == nil {
 		return errors.New("transaction must be set")
 	}
-	p.Transaction.AddSignature(userID, sig)
+	uid := make([]byte, int(p.IdLengthConf.UserIdLength))
+	copy(uid, *userID)
+	p.Transaction.AddSignature(&uid, sig)
 	return nil
 }
 
@@ -90,7 +99,7 @@ func (p *BBcWitness) Pack() ([]byte, error) {
 
 	Put2byte(buf, uint16(len(p.UserIDs)))
 	for i := 0; i < len(p.UserIDs); i++ {
-		PutBigInt(buf, &p.UserIDs[i], p.IDLength)
+		PutBigInt(buf, &p.UserIDs[i], p.IdLengthConf.UserIdLength)
 		Put2byte(buf, uint16(p.SigIndices[i]))
 	}
 
@@ -107,10 +116,11 @@ func (p *BBcWitness) Unpack(dat *[]byte) error {
 		return err
 	}
 	for i := 0; i < int(userNum); i++ {
-		userID, err2 := GetBigInt(buf)
+		userID, ulen, err2 := GetBigInt(buf)
 		if err2 != nil {
 			return err2
 		}
+		p.IdLengthConf.UserIdLength = ulen
 		p.UserIDs = append(p.UserIDs, userID)
 
 		idx, err2 := Get2byte(buf)
@@ -118,6 +128,7 @@ func (p *BBcWitness) Unpack(dat *[]byte) error {
 			return err2
 		}
 		p.SigIndices = append(p.SigIndices, int(idx))
+		p.Transaction.SetSigIndex(userID, int(idx))
 	}
 
 	return nil

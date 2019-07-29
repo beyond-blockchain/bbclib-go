@@ -22,8 +22,17 @@ import (
 )
 
 func TestRelationPackUnpack(t *testing.T) {
+	var idLengthConfig = BBcIdConfig {
+		TransactionIdLength: 32,
+		UserIdLength: 32,
+		AssetGroupIdLength: 32,
+		AssetIdLength: 32,
+		NonceLength: 32,
+	}
+
 	t.Run("simple creation (string asset)", func(t *testing.T) {
-		obj := BBcRelation{IDLength: defaultIDLength}
+		obj := BBcRelation{}
+		obj.SetIdLengthConf(&idLengthConfig)
 		ptr1 := BBcPointer{}
 		ptr2 := BBcPointer{}
 		ast := BBcAsset{}
@@ -43,7 +52,7 @@ func TestRelationPackUnpack(t *testing.T) {
 		ptr2.Add(&txid2, nil)
 
 		t.Log("---------------Relation-----------------")
-		t.Logf("id_length: %d", obj.IDLength)
+		t.Logf("id_length_config: %v", obj.IdLengthConf)
 		t.Logf("%v", obj.Stringer())
 		t.Log("--------------------------------------")
 
@@ -53,10 +62,11 @@ func TestRelationPackUnpack(t *testing.T) {
 		}
 		t.Logf("Packed data: %x", dat)
 
-		obj2 := BBcRelation{IDLength: defaultIDLength}
+		obj2 := BBcRelation{}
+		obj2.SetIdLengthConf(&idLengthConfig)
 		obj2.Unpack(&dat)
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", obj2.IDLength)
+		t.Logf("id_length_config: %v", obj2.IdLengthConf)
 		t.Logf("%v", obj2.Stringer())
 		t.Log("--------------------------------------")
 
@@ -66,16 +76,18 @@ func TestRelationPackUnpack(t *testing.T) {
 	})
 
 	t.Run("simple creation (no pointer, msgpack asset)", func(t *testing.T) {
-		ast := BBcAsset{IDLength: defaultIDLength}
+		ast := BBcAsset{}
+		ast.SetIdLengthConf(&idLengthConfig)
 		u1 := GetIdentifier("user1_789abcdef0123456789abcdef0", defaultIDLength)
 		ast.Add(&u1)
 		ast.AddBodyObject(map[int]string{1: "aaa", 2: "bbb", 10: "asdfasdfasf;lakj;lkj;"})
 
-		obj := BBcRelation{IDLength: defaultIDLength}
+		obj := BBcRelation{}
+		obj.SetIdLengthConf(&idLengthConfig)
 		assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
 		obj.Add(&assetgroup, &ast)
 		t.Log("---------------Relation-----------------")
-		t.Logf("id_length: %d", obj.IDLength)
+		t.Logf("id_length_config: %v", obj.IdLengthConf)
 		t.Logf("%v", obj.Stringer())
 		t.Log("--------------------------------------")
 
@@ -85,10 +97,11 @@ func TestRelationPackUnpack(t *testing.T) {
 		}
 		t.Logf("Packed data: %x", dat)
 
-		obj2 := BBcRelation{IDLength: defaultIDLength}
+		obj2 := BBcRelation{}
+		obj2.SetIdLengthConf(&idLengthConfig)
 		obj2.Unpack(&dat)
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", obj2.IDLength)
+		t.Logf("id_length_config: %v", obj2.IdLengthConf)
 		t.Logf("%v", obj2.Stringer())
 		t.Log("--------------------------------------")
 

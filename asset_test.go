@@ -23,13 +23,22 @@ import (
 )
 
 func TestAssetPackUnpack(t *testing.T) {
+	var idLengthConfig = BBcIdConfig {
+		TransactionIdLength: 32,
+		UserIdLength: 32,
+		AssetGroupIdLength: 32,
+		AssetIdLength: 32,
+		NonceLength: 32,
+	}
+
 	t.Run("simple creation (string)", func(t *testing.T) {
-		obj := BBcAsset{IDLength: defaultIDLength}
+		obj := BBcAsset{}
+		obj.SetIdLengthConf(&idLengthConfig)
 		u1 := GetIdentifier("user1_789abcdef0123456789abcdef0", defaultIDLength)
 		obj.Add(&u1)
 		obj.AddBodyString("testString12345XXX")
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", obj.IDLength)
+		t.Logf("id_length_config: %v", obj.IdLengthConf)
 		t.Logf("%v", obj.Stringer())
 		t.Log("--------------------------------------")
 
@@ -39,10 +48,11 @@ func TestAssetPackUnpack(t *testing.T) {
 		}
 		t.Logf("Packed data: %x", dat)
 
-		obj2 := BBcAsset{IDLength: defaultIDLength}
+		obj2 := BBcAsset{}
+		obj2.SetIdLengthConf(&idLengthConfig)
 		obj2.Unpack(&dat)
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", obj2.IDLength)
+		t.Logf("id_length_config: %v", obj2.IdLengthConf)
 		t.Logf("%v", obj2.Stringer())
 		t.Log("--------------------------------------")
 
@@ -52,14 +62,15 @@ func TestAssetPackUnpack(t *testing.T) {
 	})
 
 	t.Run("simple creation (string with file)", func(t *testing.T) {
-		obj := BBcAsset{IDLength: defaultIDLength}
+		obj := BBcAsset{}
+		obj.SetIdLengthConf(&idLengthConfig)
 		u1 := GetIdentifier("user2_789abcdef0123456789abcdef0", defaultIDLength)
 		obj.Add(&u1)
 		obj.AddBodyString("test string xxx")
 		filedat, _ := ioutil.ReadFile("./asset_test.go")
 		obj.AddFile(&filedat)
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", obj.IDLength)
+		t.Logf("id_length_config: %v", obj.IdLengthConf)
 		t.Logf("%v", obj.Stringer())
 		t.Log("--------------------------------------")
 
@@ -69,10 +80,11 @@ func TestAssetPackUnpack(t *testing.T) {
 		}
 		t.Logf("Packed data: %x", dat)
 
-		obj2 := BBcAsset{IDLength: defaultIDLength}
+		obj2 := BBcAsset{}
+		obj2.SetIdLengthConf(&idLengthConfig)
 		obj2.Unpack(&dat)
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", obj2.IDLength)
+		t.Logf("id_length_config: %v", obj2.IdLengthConf)
 		t.Logf("%v", obj2.Stringer())
 		t.Log("--------------------------------------")
 
@@ -82,13 +94,14 @@ func TestAssetPackUnpack(t *testing.T) {
 	})
 
 	t.Run("simple creation (msgpack)", func(t *testing.T) {
-		obj := BBcAsset{IDLength: defaultIDLength}
+		obj := BBcAsset{}
+		obj.SetIdLengthConf(&idLengthConfig)
 		u1 := GetIdentifier("user1_789abcdef0123456789abcdef0", defaultIDLength)
 		obj.Add(&u1)
 		obj.AddBodyObject(map[int]string{1: "aaa", 2: "bbb"})
 
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", obj.IDLength)
+		t.Logf("id_length_config: %v", obj.IdLengthConf)
 		t.Logf("%v", obj.Stringer())
 		body, _ := obj.GetBodyObject()
 		t.Logf("body_object: %v", body)
@@ -100,10 +113,11 @@ func TestAssetPackUnpack(t *testing.T) {
 		}
 		t.Logf("Packed data: %x", dat)
 
-		obj2 := BBcAsset{IDLength: defaultIDLength}
+		obj2 := BBcAsset{}
+		obj2.SetIdLengthConf(&idLengthConfig)
 		obj2.Unpack(&dat)
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", obj2.IDLength)
+		t.Logf("id_length_config: %v", obj2.IdLengthConf)
 		t.Logf("%v", obj2.Stringer())
 		body2, _ := obj2.GetBodyObject()
 		t.Logf("body_object: %v", body2)

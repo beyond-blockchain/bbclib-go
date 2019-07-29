@@ -77,4 +77,32 @@ func TestSignaturePackUnpack(t *testing.T) {
 			t.Fatal("Not recovered correctly...")
 		}
 	})
+
+	t.Run("simple creation (external public key for verification)", func(t *testing.T) {
+		keypair := GenerateKeypair(KeyTypeEcdsaP256v1, defaultCompressionMode)
+		sig := BBcSignature{}
+		sig.SetPublicKeyInfo(KeyTypeEcdsaP256v1)
+		digest := GetRandomValue(64)
+		signature := keypair.Sign(digest)
+		sig.SetSignature(&signature)
+
+		t.Log("---------------signature-----------------")
+		t.Logf("%v", sig.Stringer())
+		t.Log("--------------------------------------")
+
+		dat, err := sig.Pack()
+		if err != nil {
+			t.Fatalf("failed to serialize signature object (%v)", err)
+		}
+		t.Logf("Packed data: %x", dat)
+
+		obj2 := RecoverSignatureObject(&dat)
+		t.Log("---------------transaction-----------------")
+		t.Logf("%v", obj2.Stringer())
+		t.Log("--------------------------------------")
+
+		if ! obj2.VerifyWithPublicKey(digest, keypair.Pubkey) {
+			t.Fatal("Not recovered correctly...")
+		}
+	})
 }

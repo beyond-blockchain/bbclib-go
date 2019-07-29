@@ -31,7 +31,7 @@ IDLength is not included in a packed data. It is for internal use only.
 */
 type (
 	BBcPointer struct {
-		IDLength      int
+		IdLengthConf  *BBcIdConfig
 		TransactionID []byte
 		AssetID       []byte
 	}
@@ -44,15 +44,20 @@ func (p *BBcPointer) Stringer() string {
 	return ret
 }
 
+// Set ID length configuration
+func (p *BBcPointer) SetIdLengthConf(conf * BBcIdConfig) {
+	p.IdLengthConf = conf
+}
+
 // Add sets essential information to the BBcPointer object
 func (p *BBcPointer) Add(txid *[]byte, asid *[]byte) {
 	if txid != nil {
-		p.TransactionID = make([]byte, p.IDLength)
-		copy(p.TransactionID, (*txid)[:p.IDLength])
+		p.TransactionID = make([]byte, p.IdLengthConf.TransactionIdLength)
+		copy(p.TransactionID, (*txid)[:p.IdLengthConf.TransactionIdLength])
 	}
 	if asid != nil {
-		p.AssetID = make([]byte, p.IDLength)
-		copy(p.AssetID, (*asid)[:p.IDLength])
+		p.AssetID = make([]byte, p.IdLengthConf.AssetIdLength)
+		copy(p.AssetID, (*asid)[:p.IdLengthConf.AssetIdLength])
 	}
 }
 
@@ -60,7 +65,7 @@ func (p *BBcPointer) Add(txid *[]byte, asid *[]byte) {
 func (p *BBcPointer) Pack() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
-	PutBigInt(buf, &p.TransactionID, p.IDLength)
+	PutBigInt(buf, &p.TransactionID, p.IdLengthConf.TransactionIdLength)
 
 	if p.AssetID != nil {
 		Put2byte(buf, 1)
@@ -69,7 +74,7 @@ func (p *BBcPointer) Pack() ([]byte, error) {
 		return buf.Bytes(), nil
 	}
 
-	PutBigInt(buf, &p.AssetID, p.IDLength)
+	PutBigInt(buf, &p.AssetID, p.IdLengthConf.AssetIdLength)
 
 	return buf.Bytes(), nil
 }
@@ -79,7 +84,7 @@ func (p *BBcPointer) Unpack(dat *[]byte) error {
 	var err error
 	buf := bytes.NewBuffer(*dat)
 
-	p.TransactionID, err = GetBigInt(buf)
+	p.TransactionID, _, err = GetBigInt(buf)
 	if err != nil {
 		return err
 	}
@@ -91,7 +96,7 @@ func (p *BBcPointer) Unpack(dat *[]byte) error {
 		return nil
 	}
 
-	p.AssetID, err = GetBigInt(buf)
+	p.AssetID, _, err = GetBigInt(buf)
 	if err != nil {
 		return err
 	}

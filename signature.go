@@ -63,6 +63,13 @@ func (p *BBcSignature) SetPublicKeyByKeypair(keypair *KeyPair) {
 	p.PubkeyLen = uint32(len(p.Pubkey) * 8)
 }
 
+// SetPublicKeyInfo sets the keyType only (public key will be given when verification)
+func (p *BBcSignature) SetPublicKeyInfo(keyType uint32) {
+	p.KeyType = keyType
+	p.Pubkey = nil
+	p.PubkeyLen = 0
+}
+
 // SetSignature sets signature binary in the object
 func (p *BBcSignature) SetSignature(sig *[]byte) {
 	p.Signature = *sig
@@ -71,6 +78,14 @@ func (p *BBcSignature) SetSignature(sig *[]byte) {
 
 // Verify the TransactionID of the parent BBcTransaction object with the signature in the object
 func (p *BBcSignature) Verify(digest []byte) bool {
+	return VerifyBBcSignature(digest, p)
+}
+
+// Verify the TransactionID with the given public key
+func (p *BBcSignature) VerifyWithPublicKey(digest []byte, publicKey []byte) bool {
+	p.Pubkey = make([]byte, len(publicKey))
+	copy(p.Pubkey, publicKey)
+	p.PubkeyLen = uint32(len(publicKey) * 8)
 	return VerifyBBcSignature(digest, p)
 }
 
@@ -84,8 +99,10 @@ func (p *BBcSignature) Pack() ([]byte, error) {
 	}
 
 	Put4byte(buf, p.PubkeyLen)
-	if err := binary.Write(buf, binary.LittleEndian, p.Pubkey); err != nil {
-		return nil, err
+	if p.PubkeyLen > 0 {
+		if err := binary.Write(buf, binary.LittleEndian, p.Pubkey); err != nil {
+			return nil, err
+		}
 	}
 
 	Put4byte(buf, p.SignatureLen)
@@ -114,15 +131,19 @@ func (p *BBcSignature) Unpack(dat *[]byte) error {
 	if err != nil {
 		return err
 	}
-	p.Pubkey = make([]byte, int(p.PubkeyLen/8))
-	p.Pubkey, _ = GetBytes(buf, int(p.PubkeyLen/8))
+	if p.PubkeyLen > 0 {
+		p.Pubkey = make([]byte, int(p.PubkeyLen/8))
+		p.Pubkey, _, _ = GetBytes(buf, int(p.PubkeyLen/8))
+	} else {
+		p.Pubkey = nil
+	}
 
 	p.SignatureLen, err = Get4byte(buf)
 	if err != nil {
 		return err
 	}
 	p.Signature = make([]byte, int(p.SignatureLen/8))
-	p.Signature, _ = GetBytes(buf, int(p.SignatureLen/8))
+	p.Signature, _, _ = GetBytes(buf, int(p.SignatureLen/8))
 
 	return nil
 }

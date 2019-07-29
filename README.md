@@ -7,12 +7,12 @@ bbclib-go
 [![Maintainability](https://api.codeclimate.com/v1/badges/0c523f5a3d71b77aad46/maintainability)](https://codeclimate.com/github/beyond-blockchain/bbclib-go/maintainability)
 
 Golang implementation of bbc1.core.bbclib and bbc1.core.libs modules in https://github.com/beyond-blockchain/bbc1.
-This reposigory is originally from https://github.com/beyond-blockchain/bbclib-go
+This reposigory is originally from https://github.com/quvox/bbclib-go
 
 
 ### Features
-* Support most of features of bbclib in https://github.com/beyond-blockchain/bbc1
-    * BBc-1 version 1.2
+* Support most of features of py-bbclib in https://github.com/beyond-blockchain/py-bbclib
+    * BBc-1 version 1.4.1
     * transaction header version 1 only
 * Go v1.10 or later
 
