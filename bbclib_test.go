@@ -18,21 +18,81 @@ var (
 	txobj2           *BBcTransaction
 	txobj3           *BBcTransaction
 	assetGroupID     []byte
-	u1               []byte
-	u2               []byte
 	keypair1         KeyPair
 	keypair2         KeyPair
 )
 
+var (
+	u1 = GetIdentifier("user1_789abcdef0123456789abcdef0", defaultIDLength)
+	u2 = GetIdentifierWithTimestamp("user2", defaultIDLength)
+	u3 = GetIdentifierWithTimestamp("user3", defaultIDLength)
+	u4 = GetIdentifierWithTimestamp("user4", defaultIDLength)
+	u5 = GetIdentifierWithTimestamp("user5", defaultIDLength)
+	u6 = GetIdentifierWithTimestamp("user6", defaultIDLength)
+)
+
+
+func makeBaseTxWithUtility() *BBcTransaction {
+	txobj = MakeTransaction(1, 0, true)
+	AddEventAssetBodyString(txobj, 0, &assetGroupID, &u1, "teststring!!!!!")
+	evt := txobj.Events[0]
+	evt.AddMandatoryApprover(&u1)
+	evt.AddMandatoryApprover(&u2)
+	evt.AddOptionParams(1, 2)
+	evt.AddOptionApprover(&u3)
+	evt.AddOptionApprover(&u4)
+
+	crs := BBcCrossRef{}
+	txobj.AddCrossRef(&crs)
+	dom := GetIdentifier("dummy domain", defaultIDLength)
+	dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
+	crs.Add(&dom, &dummyTxid)
+	txobj.Crossref = &crs
+
+	txobj.Witness.AddWitness(&u1)
+	SignToTransaction(txobj, &u1, &keypair1)
+
+	return txobj
+}
+
+func makeFollowTXWithUtility(refTxObj *BBcTransaction) *BBcTransaction {
+	txobj = MakeTransaction(0, 1, true)
+	AddRelationAssetBodyString(txobj, 0, &assetGroupID, &u1, "teststringXXXXXXXXX!!!!!")
+
+	txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
+	txid2 := GetIdentifierWithTimestamp("asdfauflkajethb;:a", defaultIDLength)
+	asid1 := GetIdentifier("123456789abcdef0123456789abcdef0", defaultIDLength)
+	AddRelationPointer(txobj, 0, &txid1, &asid1)
+	AddRelationPointer(txobj, 0, &txid2, nil)
+
+	txobj.Witness.AddWitness(&u5)
+	AddReference(txobj, &assetGroupID, refTxObj, 0)
+	txobj.Witness.AddWitness(&u6)
+
+	crs := BBcCrossRef{}
+	txobj.AddCrossRef(&crs)
+	dom := GetIdentifier("dummy domain", defaultIDLength)
+	dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
+	crs.Add(&dom, &dummyTxid)
+	txobj.Crossref = &crs
+
+	SignToTransaction(txobj, &u1, &keypair1)
+	SignToTransaction(txobj, &u6, &keypair2)
+	SignToTransaction(txobj, &u2, &keypair1)
+	SignToTransaction(txobj, &u5, &keypair1)
+	SignToTransaction(txobj, &u4, &keypair2)
+
+	return txobj
+}
+
+
 func TestBBcLibUtilitiesTx1(t *testing.T) {
 	assetGroupID = GetIdentifierWithTimestamp("assetGroupID", defaultIDLength)
-	u1 = GetIdentifierWithTimestamp("user1", defaultIDLength)
-	u2 = GetIdentifierWithTimestamp("user2", defaultIDLength)
 	keypair1 = GenerateKeypair(KeyTypeEcdsaP256v1, defaultCompressionMode)
 	keypair2 = GenerateKeypair(KeyTypeEcdsaSECP256k1, defaultCompressionMode)
 
 	t.Run("MakeTransaction and events", func(t *testing.T) {
-		txobj = MakeTransaction(3, 0, true, 32)
+		txobj = MakeTransaction(3, 0, true)
 		AddEventAssetBodyString(txobj, 0, &assetGroupID, &u1, "teststring!!!!!")
 		txobj.Events[0].AddMandatoryApprover(&u1)
 		filedat, _ := ioutil.ReadFile("./asset_test.go")
@@ -60,7 +120,6 @@ func TestBBcLibUtilitiesTx1(t *testing.T) {
 
 		obj2 := BBcTransaction{}
 		obj2.Unpack(&dat)
-		obj2.Digest()
 		if result := obj2.Signatures[0].Verify(obj2.TransactionID); !result {
 			t.Fatal("Verification failed..")
 		}
@@ -74,7 +133,7 @@ func TestBBcLibUtilitiesTx1(t *testing.T) {
 
 func TestBBcLibUtilitiesTx2(t *testing.T) {
 	t.Run("MakeTransaction and events/reference", func(t *testing.T) {
-		txobj2 = MakeTransaction(2, 0, true, 32)
+		txobj2 = MakeTransaction(2, 0, true)
 		AddEventAssetBodyString(txobj2, 0, &assetGroupID, &u1, "teststring!!!!!")
 		filedat, _ := ioutil.ReadFile("./crossref_test.go")
 		AddEventAssetFile(txobj2, 1, &assetGroupID, &u2, &filedat)
@@ -117,7 +176,7 @@ func TestBBcLibUtilitiesTx2(t *testing.T) {
 }
 func TestBBcLibUtilitiesTx3(t *testing.T) {
 	t.Run("MakeTransaction and relations", func(t *testing.T) {
-		txobj3 = MakeTransaction(0, 3, true, 32)
+		txobj3 = MakeTransaction(0, 3, true)
 		AddRelationAssetBodyString(txobj3, 0, &assetGroupID, &u1, "teststring!!!!!")
 		filedat, _ := ioutil.ReadFile("./crossref_test.go")
 		AddRelationAssetFile(txobj3, 1, &assetGroupID, &u2, &filedat)
@@ -179,7 +238,7 @@ func TestBBcLibSerializeDeserialize(t *testing.T) {
 			t.Fatalf("failed to deserialize transaction data (%v)", err)
 		}
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", obj2.IDLength)
+		t.Logf("id_length_config: %v", obj2.IdLengthConf)
 		t.Logf("%v", obj2.Stringer())
 		t.Log("--------------------------------------")
 
@@ -201,7 +260,7 @@ func TestBBcLibSerializeDeserialize(t *testing.T) {
 			t.Fatalf("failed to deserialize transaction data (%v)", err)
 		}
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", obj2.IDLength)
+		t.Logf("id_length_config: %v", obj2.IdLengthConf)
 		t.Logf("%v", obj2.Stringer())
 		t.Log("--------------------------------------")
 
@@ -219,7 +278,7 @@ func TestBBcLibSerializeDeserializePythonData(t *testing.T) {
 			t.Fatalf("failed to deserialize transaction data (%v)", err)
 		}
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", txobj4.IDLength)
+		t.Logf("id_length_config: %v", txobj4.IdLengthConf)
 		t.Logf("%v", txobj4.Stringer())
 		t.Log("--------------------------------------")
 
@@ -240,7 +299,7 @@ func TestBBcLibSerializeDeserializePythonData(t *testing.T) {
 			t.Fatalf("failed to deserialize transaction data (%v)", err)
 		}
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", txobj5.IDLength)
+		t.Logf("id_length_config: %v", txobj5.IdLengthConf)
 		t.Logf("%v", txobj5.Stringer())
 		t.Log("--------------------------------------")
 
@@ -251,6 +310,127 @@ func TestBBcLibSerializeDeserializePythonData(t *testing.T) {
 		asgidOrg, _ := hex.DecodeString(assetGroupIDInTx)
 		if bytes.Compare(txobj5.Relations[0].AssetGroupID, asgidOrg) != 0 {
 			t.Fatal("Not recovered correctly...2")
+		}
+	})
+}
+
+func TestBBcLibSerializeDeserializeWithLengthConf(t *testing.T) {
+	t.Run("transaction_id length is 10", func(t *testing.T) {
+		idconf := BBcIdConfig{10,32,32,32,32}
+		ConfigureIdLength(&idconf)
+		txprev := makeBaseTxWithUtility()
+		txobj := makeFollowTXWithUtility(txprev)
+		dat, _ := Serialize(txobj, FormatZlib)
+		txobj_deserialized, _ := Deserialize(dat)
+		if txobj_deserialized.TransactionIdLength != 10 {
+			t.Fatalf("Invalid transaction_id length field (%d != 10) idconf=%v\n", txobj_deserialized.TransactionIdLength, idconf)
+		}
+		if len(txobj_deserialized.Relations[0].Pointers[0].TransactionID) != 10 {
+			t.Fatal("Invalid transaction_id length (!= 10)")
+		}
+	})
+
+	t.Run("user_id length is 10", func(t *testing.T) {
+		idconf := BBcIdConfig{32,10,32,32,32}
+		ConfigureIdLength(&idconf)
+		txprev := makeBaseTxWithUtility()
+		txobj := makeFollowTXWithUtility(txprev)
+		dat, _ := Serialize(txobj, FormatZlib)
+		txobj_deserialized, _ := Deserialize(dat)
+		if len(txobj_deserialized.Witness.UserIDs[0]) != 10 {
+			t.Fatalf("Invalid user_id length in Witness (%d != 10) idconf=%v\n", len(txobj_deserialized.Witness.UserIDs[0]), idconf)
+		}
+		if len(txobj_deserialized.Relations[0].Asset.UserID) != 10 {
+			t.Fatalf("Invalid user_id length in Asset of Relation (%d != 10) idconf=%v\n", len(txobj_deserialized.Relations[0].Asset.UserID), idconf)
+		}
+		if len(txprev.Events[0].Asset.UserID) != 10 {
+			t.Fatalf("Invalid user_id length in Asset of Event (%d != 10) idconf=%v\n", len(txprev.Events[0].Asset.UserID), idconf)
+		}
+	})
+
+	t.Run("asset_group_id length is 10)", func(t *testing.T) {
+		idconf := BBcIdConfig{32,32,10,32,32}
+		ConfigureIdLength(&idconf)
+		txprev := makeBaseTxWithUtility()
+		txobj := makeFollowTXWithUtility(txprev)
+		dat, _ := Serialize(txobj, FormatZlib)
+		txobj_deserialized, _ := Deserialize(dat)
+		if len(txobj_deserialized.Relations[0].AssetGroupID) != 10 {
+			t.Fatalf("Invalid asset_group_id length in Relation (%d != 10) idconf=%v\n", len(txobj_deserialized.Relations[0].AssetGroupID), idconf)
+		}
+		if len(txprev.Events[0].AssetGroupID) != 10 {
+			t.Fatalf("Invalid asset_group_id length in Event (%d != 10) idconf=%v\n", len(txprev.Events[0].AssetGroupID), idconf)
+		}
+	})
+
+	t.Run("asset_id length is 10)", func(t *testing.T) {
+		idconf := BBcIdConfig{32,32,32,10,32}
+		ConfigureIdLength(&idconf)
+		txprev := makeBaseTxWithUtility()
+		txobj := makeFollowTXWithUtility(txprev)
+		dat, _ := Serialize(txobj, FormatZlib)
+		txobj_deserialized, _ := Deserialize(dat)
+		if len(txobj_deserialized.Relations[0].Asset.AssetID) != 10 {
+			t.Fatalf("Invalid asset_id length in Asset of Relation (%d != 10) idconf=%v\n", len(txobj_deserialized.Relations[0].Asset.AssetID), idconf)
+		}
+		if len(txprev.Events[0].Asset.AssetID) != 10 {
+			t.Fatalf("Invalid asset_id length in Asset of Event (%d != 10) idconf=%v\n", len(txprev.Events[0].Asset.AssetID), idconf)
+		}
+	})
+
+	t.Run("nonce length is 10)", func(t *testing.T) {
+		idconf := BBcIdConfig{32,32,32,32,10}
+		ConfigureIdLength(&idconf)
+		txprev := makeBaseTxWithUtility()
+		txobj := makeFollowTXWithUtility(txprev)
+		dat, _ := Serialize(txobj, FormatZlib)
+		txobj_deserialized, _ := Deserialize(dat)
+		if len(txobj_deserialized.Relations[0].Asset.Nonce) != 10 {
+			t.Fatalf("Invalid nonce length in Asset of Relation (%d != 10) idconf=%v\n", len(txobj_deserialized.Relations[0].Asset.AssetID), idconf)
+		}
+		if len(txprev.Events[0].Asset.Nonce) != 10 {
+			t.Fatalf("Invalid nonce length in Asset of Event (%d != 10) idconf=%v\n", len(txprev.Events[0].Asset.AssetID), idconf)
+		}
+	})
+
+	t.Run("all lengths are 10)", func(t *testing.T) {
+		ConfigureIdLengthAll(10)
+		txprev := makeBaseTxWithUtility()
+		txobj := makeFollowTXWithUtility(txprev)
+		dat, _ := Serialize(txobj, FormatZlib)
+		txobj_deserialized, _ := Deserialize(dat)
+		if txobj_deserialized.TransactionIdLength != 10 {
+			t.Fatalf("Invalid transaction_id length field (%d != 10) idconf=%d\n", txobj_deserialized.TransactionIdLength, 10)
+		}
+		if len(txobj_deserialized.Relations[0].Pointers[0].TransactionID) != 10 {
+			t.Fatal("Invalid transaction_id length (!= 10)")
+		}
+		if len(txobj_deserialized.Witness.UserIDs[0]) != 10 {
+			t.Fatalf("Invalid user_id length in Witness (%d != 10) idconf=%v\n", len(txobj_deserialized.Witness.UserIDs[0]), 10)
+		}
+		if len(txobj_deserialized.Relations[0].Asset.UserID) != 10 {
+			t.Fatalf("Invalid user_id length in Asset of Relation (%d != 10) idconf=%v\n", len(txobj_deserialized.Relations[0].Asset.UserID), 10)
+		}
+		if len(txprev.Events[0].Asset.UserID) != 10 {
+			t.Fatalf("Invalid user_id length in Asset of Event (%d != 10) idconf=%v\n", len(txprev.Events[0].Asset.UserID), 10)
+		}
+		if len(txobj_deserialized.Relations[0].AssetGroupID) != 10 {
+			t.Fatalf("Invalid asset_group_id length in Relation (%d != 10) idconf=%v\n", len(txobj_deserialized.Relations[0].AssetGroupID), 10)
+		}
+		if len(txprev.Events[0].AssetGroupID) != 10 {
+			t.Fatalf("Invalid asset_group_id length in Event (%d != 10) idconf=%v\n", len(txprev.Events[0].AssetGroupID), 10)
+		}
+		if len(txobj_deserialized.Relations[0].Asset.AssetID) != 10 {
+			t.Fatalf("Invalid asset_id length in Asset of Relation (%d != 10) idconf=%v\n", len(txobj_deserialized.Relations[0].Asset.AssetID), 10)
+		}
+		if len(txprev.Events[0].Asset.AssetID) != 10 {
+			t.Fatalf("Invalid asset_id length in Asset of Event (%d != 10) idconf=%v\n", len(txprev.Events[0].Asset.AssetID), 10)
+		}
+		if len(txobj_deserialized.Relations[0].Asset.Nonce) != 10 {
+			t.Fatalf("Invalid nonce length in Asset of Relation (%d != 10) idconf=%v\n", len(txobj_deserialized.Relations[0].Asset.AssetID), 10)
+		}
+		if len(txprev.Events[0].Asset.Nonce) != 10 {
+			t.Fatalf("Invalid nonce length in Asset of Event (%d != 10) idconf=%v\n", len(txprev.Events[0].Asset.AssetID), 10)
 		}
 	})
 }

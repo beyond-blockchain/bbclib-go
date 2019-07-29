@@ -36,7 +36,7 @@ If you want to include signature(s) according to the contents of BBcRelation obj
 */
 type (
 	BBcRelation struct {
-		IDLength     int
+		IdLengthConf *BBcIdConfig
 		AssetGroupID []byte
 		Pointers     []*BBcPointer
 		Asset        *BBcAsset
@@ -63,21 +63,26 @@ func (p *BBcRelation) Stringer() string {
 	return ret
 }
 
+// Set ID length configuration
+func (p *BBcRelation) SetIdLengthConf(conf * BBcIdConfig) {
+	p.IdLengthConf = conf
+}
+
 // Add sets essential information (assetGroupID and BBcAsset object) to the BBcRelation object
 func (p *BBcRelation) Add(assetGroupID *[]byte, asset *BBcAsset) {
 	if assetGroupID != nil {
-		p.AssetGroupID = make([]byte, p.IDLength)
+		p.AssetGroupID = make([]byte, p.IdLengthConf.AssetGroupIdLength)
 		copy(p.AssetGroupID, *assetGroupID)
 	}
 	if asset != nil {
 		p.Asset = asset
-		p.Asset.IDLength = p.IDLength
+		p.Asset.SetIdLengthConf(p.IdLengthConf)
 	}
 }
 
 // AddPointer sets the BBcPointer object in the object
 func (p *BBcRelation) AddPointer(pointer *BBcPointer) {
-	pointer.IDLength = p.IDLength
+	pointer.SetIdLengthConf(p.IdLengthConf)
 	p.Pointers = append(p.Pointers, pointer)
 }
 
@@ -85,7 +90,7 @@ func (p *BBcRelation) AddPointer(pointer *BBcPointer) {
 func (p *BBcRelation) Pack() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
-	PutBigInt(buf, &p.AssetGroupID, p.IDLength)
+	PutBigInt(buf, &p.AssetGroupID, p.IdLengthConf.AssetGroupIdLength)
 
 	Put2byte(buf, uint16(len(p.Pointers)))
 	for _, p := range p.Pointers {
@@ -118,7 +123,7 @@ func (p *BBcRelation) Unpack(dat *[]byte) error {
 	var err error
 	buf := bytes.NewBuffer(*dat)
 
-	p.AssetGroupID, err = GetBigInt(buf)
+	p.AssetGroupID, p.IdLengthConf.AssetGroupIdLength, err = GetBigInt(buf)
 	if err != nil {
 		return err
 	}
@@ -132,8 +137,9 @@ func (p *BBcRelation) Unpack(dat *[]byte) error {
 		if err2 != nil {
 			return err2
 		}
-		ptr, _ := GetBytes(buf, int(size))
-		pointer := BBcPointer{IDLength: p.IDLength}
+		ptr, _, _ := GetBytes(buf, int(size))
+		pointer := BBcPointer{}
+		pointer.SetIdLengthConf(p.IdLengthConf)
 		pointer.Unpack(&ptr)
 		p.Pointers = append(p.Pointers, &pointer)
 	}
@@ -143,11 +149,12 @@ func (p *BBcRelation) Unpack(dat *[]byte) error {
 		return err
 	}
 	if assetSize > 0 {
-		ast, err := GetBytes(buf, int(assetSize))
+		ast, _, err := GetBytes(buf, int(assetSize))
 		if err != nil {
 			return err
 		}
-		p.Asset = &BBcAsset{IDLength: p.IDLength}
+		p.Asset = &BBcAsset{}
+		p.Asset.SetIdLengthConf(p.IdLengthConf)
 		p.Asset.Unpack(&ast)
 	}
 

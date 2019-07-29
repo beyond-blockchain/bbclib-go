@@ -106,19 +106,19 @@ func PutBigInt(buf *bytes.Buffer, val *[]byte, length int) {
 }
 
 // GetBigInt returns a ID data from the buffer
-func GetBigInt(buf *bytes.Buffer) ([]byte, error) {
+func GetBigInt(buf *bytes.Buffer) ([]byte, int, error) {
 	length, err := Get2byte(buf)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	return GetBytes(buf, int(length))
 }
 
 // GetBytes returns binary data with specified length from the buffer
-func GetBytes(buf *bytes.Buffer, length int) ([]byte, error) {
+func GetBytes(buf *bytes.Buffer, length int) ([]byte, int, error) {
 	val := make([]byte, length)
 	if err := binary.Read(buf, binary.LittleEndian, val); err != nil {
-		return nil, err
+		return nil, length, err
 	}
-	return val, nil
+	return val, length, nil
 }

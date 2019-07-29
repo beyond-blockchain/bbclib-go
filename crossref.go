@@ -33,7 +33,7 @@ CrossRef stands for CrossReference, which holds information in other domain for 
 */
 type (
 	BBcCrossRef struct {
-		IDLength      int
+		IdLengthConf  *BBcIdConfig
 		DomainID      []byte
 		TransactionID []byte
 	}
@@ -52,6 +52,11 @@ func (p *BBcCrossRef) Stringer() string {
 	return ret
 }
 
+// Set ID length configuration
+func (p *BBcCrossRef) SetIdLengthConf(conf * BBcIdConfig) {
+	p.IdLengthConf = conf
+}
+
 // Add sets essential information to the BBcCrossRef object
 func (p *BBcCrossRef) Add(domainID *[]byte, txid *[]byte) {
 	if domainID != nil {
@@ -59,8 +64,8 @@ func (p *BBcCrossRef) Add(domainID *[]byte, txid *[]byte) {
 		copy(p.DomainID, *domainID)
 	}
 	if txid != nil {
-		p.TransactionID = make([]byte, p.IDLength)
-		copy(p.TransactionID, (*txid)[:p.IDLength])
+		p.TransactionID = make([]byte, p.IdLengthConf.TransactionIdLength)
+		copy(p.TransactionID, (*txid)[:p.IdLengthConf.TransactionIdLength])
 	}
 }
 
@@ -79,12 +84,12 @@ func (p *BBcCrossRef) Unpack(dat *[]byte) error {
 	var err error
 	buf := bytes.NewBuffer(*dat)
 
-	p.DomainID, err = GetBigInt(buf)
+	p.DomainID, _, err = GetBigInt(buf)
 	if err != nil {
 		return err
 	}
 
-	p.TransactionID, err = GetBigInt(buf)
+	p.TransactionID, _, err = GetBigInt(buf)
 	if err != nil {
 		return err
 	}

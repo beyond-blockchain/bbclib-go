@@ -22,13 +22,22 @@ import (
 )
 
 func TestPointerPackUnpack(t *testing.T) {
+	var idLengthConfig = BBcIdConfig {
+		TransactionIdLength: 32,
+		UserIdLength: 32,
+		AssetGroupIdLength: 32,
+		AssetIdLength: 32,
+		NonceLength: 32,
+	}
+
 	t.Run("simple creation", func(t *testing.T) {
-		obj := BBcPointer{IDLength: defaultIDLength}
+		obj := BBcPointer{}
+		obj.SetIdLengthConf(&idLengthConfig)
 		txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
 		asid1 := GetIdentifier("123456789abcdef0123456789abcdef0", defaultIDLength)
 		obj.Add(&txid1, &asid1)
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", obj.IDLength)
+		t.Logf("id_length_config: %v", obj.IdLengthConf)
 		t.Logf("%v", obj.Stringer())
 		t.Log("--------------------------------------")
 
@@ -38,10 +47,10 @@ func TestPointerPackUnpack(t *testing.T) {
 		}
 		t.Logf("Packed data: %x", dat)
 
-		obj2 := BBcPointer{IDLength: defaultIDLength}
+		obj2 := BBcPointer{}
 		obj2.Unpack(&dat)
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", obj2.IDLength)
+		t.Logf("id_length_config: %v", obj2.IdLengthConf)
 		t.Logf("%v", obj2.Stringer())
 		t.Log("--------------------------------------")
 
@@ -51,12 +60,13 @@ func TestPointerPackUnpack(t *testing.T) {
 	})
 
 	t.Run("simple creation (asset_id is nil)", func(t *testing.T) {
-		obj := BBcPointer{IDLength: defaultIDLength}
+		obj := BBcPointer{}
+		obj.SetIdLengthConf(&idLengthConfig)
 		txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
 		asid1 := GetIdentifier("123456789abcdef0123456789abcdef0", defaultIDLength)
 		obj.Add(&txid1, &asid1)
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", obj.IDLength)
+		t.Logf("id_length_config: %v", obj.IdLengthConf)
 		t.Logf("%v", obj.Stringer())
 		t.Log("--------------------------------------")
 
@@ -66,10 +76,11 @@ func TestPointerPackUnpack(t *testing.T) {
 		}
 		t.Logf("Packed data: %x", dat)
 
-		obj2 := BBcPointer{IDLength: defaultIDLength}
+		obj2 := BBcPointer{}
+		obj2.SetIdLengthConf(&idLengthConfig)
 		obj2.Unpack(&dat)
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", obj2.IDLength)
+		t.Logf("id_length_config: %v", obj2.IdLengthConf)
 		t.Logf("%v", obj2.Stringer())
 		t.Log("--------------------------------------")
 

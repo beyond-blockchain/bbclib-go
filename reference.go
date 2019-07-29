@@ -38,7 +38,7 @@ The BBcReference is an input of UTXO (Unspent Transaction Output) structure and 
 */
 type (
 	BBcReference struct {
-		IDLength        int
+		IdLengthConf    *BBcIdConfig
 		AssetGroupID    []byte
 		TransactionID   []byte
 		EventIndexInRef uint16
@@ -59,6 +59,11 @@ func (p *BBcReference) Stringer() string {
 	return ret
 }
 
+// Set ID length configuration
+func (p *BBcReference) SetIdLengthConf(conf * BBcIdConfig) {
+	p.IdLengthConf = conf
+}
+
 // SetTransaction links the BBcReference object to the parent transaction object
 func (p *BBcReference) SetTransaction(txobj *BBcTransaction) {
 	p.Transaction = txobj
@@ -67,7 +72,7 @@ func (p *BBcReference) SetTransaction(txobj *BBcTransaction) {
 // Add sets essential information to the BBcReference object
 func (p *BBcReference) Add(assetGroupID *[]byte, refTransaction *BBcTransaction, eventIdx int) {
 	if assetGroupID != nil {
-		p.AssetGroupID = make([]byte, p.IDLength)
+		p.AssetGroupID = make([]byte, p.IdLengthConf.AssetGroupIdLength)
 		copy(p.AssetGroupID, *assetGroupID)
 	}
 	if eventIdx > -1 {
@@ -75,7 +80,7 @@ func (p *BBcReference) Add(assetGroupID *[]byte, refTransaction *BBcTransaction,
 	}
 	if refTransaction != nil {
 		p.RefTransaction = refTransaction
-		p.TransactionID = refTransaction.TransactionID[:p.IDLength]
+		p.TransactionID = refTransaction.TransactionID[:p.IdLengthConf.TransactionIdLength]
 		p.RefEvent = *p.RefTransaction.Events[p.EventIndexInRef]
 
 		if len(p.SigIndices) == 0 {
@@ -84,7 +89,7 @@ func (p *BBcReference) Add(assetGroupID *[]byte, refTransaction *BBcTransaction,
 				p.SigIndices = append(p.SigIndices, idx)
 			}
 			for i:=0; i<int(p.RefEvent.OptionApproverNumNumerator); i++ {
-				dummyId := GetRandomValue(p.Transaction.IDLength)
+				dummyId := GetRandomValue(p.Transaction.IdLengthConf.UserIdLength)
 				p.sigIndicesOptions = append(p.sigIndicesOptions, dummyId)
 				idx := p.Transaction.GetSigIndex(dummyId)
 				p.SigIndices = append(p.SigIndices, idx)
@@ -96,7 +101,7 @@ func (p *BBcReference) Add(assetGroupID *[]byte, refTransaction *BBcTransaction,
 				j += 1
 			}
 			for i:=0; i<int(p.RefEvent.OptionApproverNumNumerator); i++ {
-				dummyId := GetRandomValue(p.Transaction.IDLength)
+				dummyId := GetRandomValue(p.Transaction.IdLengthConf.UserIdLength)
 				p.sigIndicesOptions = append(p.sigIndicesOptions, dummyId)
 				p.Transaction.SetSigIndex(dummyId, p.SigIndices[j])
 				j += 1
@@ -107,21 +112,24 @@ func (p *BBcReference) Add(assetGroupID *[]byte, refTransaction *BBcTransaction,
 
 // AddSignature sets the BBcSignature object in the object
 func (p *BBcReference) AddSignature(userID *[]byte, sig *BBcSignature) error {
+	uid := make([]byte, p.Transaction.IdLengthConf.UserIdLength)
+	copy(uid, *userID)
+
 	if p.Transaction == nil {
 		return errors.New("transaction must be set")
 	}
 	for _, m := range p.RefEvent.MandatoryApprovers {
-		if reflect.DeepEqual(&m, userID) {
-			p.Transaction.AddSignature(userID, sig)
+		if reflect.DeepEqual(m, uid) {
+			p.Transaction.AddSignature(&uid, sig)
 			return nil
 		}
 	}
 	for _, o := range p.RefEvent.OptionApprovers {
-		if reflect.DeepEqual(o, *userID) {
-			uid := make([]byte, p.Transaction.IDLength)
-			copy(uid, p.sigIndicesOptions[0])
+		if reflect.DeepEqual(o, uid) {
+			u := make([]byte, p.Transaction.IdLengthConf.UserIdLength)
+			copy(u, p.sigIndicesOptions[0])
 			p.sigIndicesOptions = p.sigIndicesOptions[1:]
-			p.Transaction.AddSignature(&uid, sig)
+			p.Transaction.AddSignature(&u, sig)
 			return nil
 		}
 	}
@@ -132,8 +140,8 @@ func (p *BBcReference) AddSignature(userID *[]byte, sig *BBcSignature) error {
 func (p *BBcReference) Pack() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
-	PutBigInt(buf, &p.AssetGroupID, p.IDLength)
-	PutBigInt(buf, &p.TransactionID, p.IDLength)
+	PutBigInt(buf, &p.AssetGroupID, p.IdLengthConf.TransactionIdLength)
+	PutBigInt(buf, &p.TransactionID, p.IdLengthConf.TransactionIdLength)
 	Put2byte(buf, p.EventIndexInRef)
 	Put2byte(buf, uint16(len(p.SigIndices)))
 	for i := 0; i < len(p.SigIndices); i++ {
@@ -148,12 +156,12 @@ func (p *BBcReference) Unpack(dat *[]byte) error {
 	var err error
 	buf := bytes.NewBuffer(*dat)
 
-	p.AssetGroupID, err = GetBigInt(buf)
+	p.AssetGroupID, p.IdLengthConf.AssetGroupIdLength, err = GetBigInt(buf)
 	if err != nil {
 		return err
 	}
 
-	p.TransactionID, err = GetBigInt(buf)
+	p.TransactionID, _, err = GetBigInt(buf)
 	if err != nil {
 		return err
 	}

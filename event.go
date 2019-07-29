@@ -43,7 +43,7 @@ Asset is the most important part of the BBcTransaction. The BBcAsset object incl
 */
 type (
 	BBcEvent struct {
-		IDLength                     int
+		IdLengthConf         		 *BBcIdConfig
 		AssetGroupID                 []byte
 		ReferenceIndices             []int
 		MandatoryApprovers           [][]byte
@@ -88,15 +88,20 @@ func (p *BBcEvent) Stringer() string {
 	return ret
 }
 
+// Set ID length configuration
+func (p *BBcEvent) SetIdLengthConf(conf * BBcIdConfig) {
+	p.IdLengthConf = conf
+}
+
 // Add sets essential information to the BBcEvent object
 func (p *BBcEvent) Add(assetGroupID *[]byte, asset *BBcAsset) {
 	if assetGroupID != nil {
-		p.AssetGroupID = make([]byte, p.IDLength)
-		copy(p.AssetGroupID, (*assetGroupID)[:p.IDLength])
+		p.AssetGroupID = make([]byte, p.IdLengthConf.AssetGroupIdLength)
+		copy(p.AssetGroupID, (*assetGroupID)[:p.IdLengthConf.AssetGroupIdLength])
 	}
 	if asset != nil {
 		p.Asset = asset
-		p.Asset.IDLength = p.IDLength
+		p.Asset.SetIdLengthConf(p.IdLengthConf)
 	}
 }
 
@@ -115,14 +120,14 @@ func (p *BBcEvent) AddOptionParams(numerator int, denominator int) {
 
 // AddMandatoryApprover sets userID in MandatoryApprover list of the BBcEvent object
 func (p *BBcEvent) AddMandatoryApprover(userID *[]byte) {
-	uid := make([]byte, p.IDLength)
+	uid := make([]byte, p.IdLengthConf.UserIdLength)
 	copy(uid, *userID)
 	p.MandatoryApprovers = append(p.MandatoryApprovers, uid)
 }
 
 // AddOptionApprover sets userID in OptionApprover list of the BBcEvent object
 func (p *BBcEvent) AddOptionApprover(userID *[]byte) {
-	uid := make([]byte, p.IDLength)
+	uid := make([]byte, p.IdLengthConf.UserIdLength)
 	copy(uid, *userID)
 	p.OptionApprovers = append(p.OptionApprovers, uid)
 }
@@ -134,7 +139,7 @@ func (p *BBcEvent) Pack() ([]byte, error) {
 	}
 	buf := new(bytes.Buffer)
 
-	PutBigInt(buf, &p.AssetGroupID, p.IDLength)
+	PutBigInt(buf, &p.AssetGroupID, p.IdLengthConf.AssetGroupIdLength)
 
 	Put2byte(buf, uint16(len(p.ReferenceIndices)))
 	for i := 0; i < len(p.ReferenceIndices); i++ {
@@ -143,13 +148,13 @@ func (p *BBcEvent) Pack() ([]byte, error) {
 
 	Put2byte(buf, uint16(len(p.MandatoryApprovers)))
 	for i := 0; i < len(p.MandatoryApprovers); i++ {
-		PutBigInt(buf, &p.MandatoryApprovers[i], p.IDLength)
+		PutBigInt(buf, &p.MandatoryApprovers[i], p.IdLengthConf.UserIdLength)
 	}
 
 	Put2byte(buf, p.OptionApproverNumNumerator)
 	Put2byte(buf, p.OptionApproverNumDenominator)
 	for i := 0; i < int(p.OptionApproverNumDenominator); i++ {
-		PutBigInt(buf, &p.OptionApprovers[i], p.IDLength)
+		PutBigInt(buf, &p.OptionApprovers[i], p.IdLengthConf.UserIdLength)
 	}
 
 	if p.Asset != nil {
@@ -175,10 +180,11 @@ func (p *BBcEvent) unpackApprovers(buf *bytes.Buffer) error {
 		return err
 	}
 	for i := 0; i < int(numMandatory); i++ {
-		userID, err2 := GetBigInt(buf)
+		userID, ulen, err2 := GetBigInt(buf)
 		if err2 != nil {
 			return err2
 		}
+		p.IdLengthConf.UserIdLength = ulen
 		p.MandatoryApprovers = append(p.MandatoryApprovers, userID)
 	}
 
@@ -192,10 +198,11 @@ func (p *BBcEvent) unpackApprovers(buf *bytes.Buffer) error {
 	}
 
 	for i := 0; i < int(p.OptionApproverNumDenominator); i++ {
-		userID, err2 := GetBigInt(buf)
+		userID, ulen, err2 := GetBigInt(buf)
 		if err2 != nil {
 			return err2
 		}
+		p.IdLengthConf.UserIdLength = ulen
 		p.OptionApprovers = append(p.OptionApprovers, userID)
 	}
 	return nil
@@ -206,7 +213,7 @@ func (p *BBcEvent) Unpack(dat *[]byte) error {
 	var err error
 	buf := bytes.NewBuffer(*dat)
 
-	p.AssetGroupID, err = GetBigInt(buf)
+	p.AssetGroupID, p.IdLengthConf.AssetGroupIdLength, err = GetBigInt(buf)
 	if err != nil {
 		return err
 	}
@@ -232,11 +239,12 @@ func (p *BBcEvent) Unpack(dat *[]byte) error {
 		return err
 	}
 	if assetSize > 0 {
-		ast, err := GetBytes(buf, int(assetSize))
+		ast, _, err := GetBytes(buf, int(assetSize))
 		if err != nil {
 			return err
 		}
-		p.Asset = &BBcAsset{IDLength: p.IDLength}
+		p.Asset = &BBcAsset{}
+		p.Asset.IdLengthConf = p.IdLengthConf
 		p.Asset.Unpack(&ast)
 	}
 

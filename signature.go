@@ -115,14 +115,14 @@ func (p *BBcSignature) Unpack(dat *[]byte) error {
 		return err
 	}
 	p.Pubkey = make([]byte, int(p.PubkeyLen/8))
-	p.Pubkey, _ = GetBytes(buf, int(p.PubkeyLen/8))
+	p.Pubkey, _, _ = GetBytes(buf, int(p.PubkeyLen/8))
 
 	p.SignatureLen, err = Get4byte(buf)
 	if err != nil {
 		return err
 	}
 	p.Signature = make([]byte, int(p.SignatureLen/8))
-	p.Signature, _ = GetBytes(buf, int(p.SignatureLen/8))
+	p.Signature, _, _ = GetBytes(buf, int(p.SignatureLen/8))
 
 	return nil
 }

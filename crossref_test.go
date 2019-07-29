@@ -22,13 +22,22 @@ import (
 )
 
 func TestCrossRefPackUnpack(t *testing.T) {
+	var idLengthConfig = BBcIdConfig {
+		TransactionIdLength: 32,
+		UserIdLength: 32,
+		AssetGroupIdLength: 32,
+		AssetIdLength: 32,
+		NonceLength: 32,
+	}
+
 	t.Run("simple creation", func(t *testing.T) {
-		obj := BBcCrossRef{IDLength: defaultIDLength}
+		obj := BBcCrossRef{}
+		obj.SetIdLengthConf(&idLengthConfig)
 		dom := GetIdentifier("dummy domain", defaultIDLength)
 		dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
 		obj.Add(&dom, &dummyTxid)
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", obj.IDLength)
+		t.Logf("id_length_config: %v", obj.IdLengthConf)
 		t.Logf("%v", obj.Stringer())
 		t.Log("--------------------------------------")
 
@@ -38,10 +47,11 @@ func TestCrossRefPackUnpack(t *testing.T) {
 		}
 		t.Logf("Packed data: %x", dat)
 
-		obj2 := BBcCrossRef{IDLength: defaultIDLength}
+		obj2 := BBcCrossRef{}
+		obj2.SetIdLengthConf(&idLengthConfig)
 		obj2.Unpack(&dat)
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", obj2.IDLength)
+		t.Logf("id_length_config: %v", obj2.IdLengthConf)
 		t.Logf("%v", obj2.Stringer())
 		t.Log("--------------------------------------")
 

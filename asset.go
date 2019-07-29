@@ -36,7 +36,7 @@ BBcAsset can contain a digest of a file, string, map[string]interface{} object a
 */
 type (
 	BBcAsset struct {
-		IDLength          int
+		IdLengthConf      *BBcIdConfig
 		digestCalculating bool
 		AssetID           []byte
 		UserID            []byte
@@ -93,16 +93,18 @@ func (p *BBcAsset) Stringer() string {
 	return ret
 }
 
+// Set ID length configuration
+func (p *BBcAsset) SetIdLengthConf(conf * BBcIdConfig) {
+	p.IdLengthConf = conf
+}
+
 // Add sets userID in the BBcAsset object
 func (p *BBcAsset) Add(userID *[]byte) {
 	if userID != nil {
-		if p.IDLength == 0 {
-			p.IDLength = len(*userID)
-		}
-		p.UserID = make([]byte, p.IDLength)
-		copy(p.UserID, (*userID)[:p.IDLength])
+		p.UserID = make([]byte, p.IdLengthConf.UserIdLength)
+		copy(p.UserID, (*userID)[:p.IdLengthConf.UserIdLength])
 	}
-	p.Nonce = GetRandomValue(p.IDLength)
+	p.Nonce = GetRandomValue(p.IdLengthConf.NonceLength)
 }
 
 // AddFile add the digest of file in the BBcAsset object
@@ -151,9 +153,9 @@ func (p *BBcAsset) Digest() []byte {
 
 	digest := sha256.Sum256(asset)
 	if p.AssetID == nil {
-		p.AssetID = make([]byte, p.IDLength)
+		p.AssetID = make([]byte, p.IdLengthConf.AssetIdLength)
 	}
-	p.AssetID = digest[:p.IDLength]
+	p.AssetID = digest[:p.IdLengthConf.AssetIdLength]
 	p.digestCalculating = false
 	return digest[:]
 }
@@ -166,9 +168,9 @@ func (p *BBcAsset) Pack() ([]byte, error) {
 		if p.AssetID == nil {
 			p.Digest()
 		}
-		PutBigInt(buf, &p.AssetID, p.IDLength)
+		PutBigInt(buf, &p.AssetID, p.IdLengthConf.AssetIdLength)
 	}
-	PutBigInt(buf, &p.UserID, p.IDLength)
+	PutBigInt(buf, &p.UserID, p.IdLengthConf.UserIdLength)
 	PutBigInt(buf, &p.Nonce, len(p.Nonce))
 	Put4byte(buf, p.AssetFileSize)
 	if p.AssetFileSize > 0 {
@@ -190,17 +192,17 @@ func (p *BBcAsset) Unpack(dat *[]byte) error {
 	var err error
 	buf := bytes.NewBuffer(*dat)
 
-	p.AssetID, err = GetBigInt(buf)
+	p.AssetID, p.IdLengthConf.AssetIdLength, err = GetBigInt(buf)
 	if err != nil {
 		return err
 	}
 
-	p.UserID, err = GetBigInt(buf)
+	p.UserID, p.IdLengthConf.UserIdLength, err = GetBigInt(buf)
 	if err != nil {
 		return err
 	}
 
-	p.Nonce, err = GetBigInt(buf)
+	p.Nonce, p.IdLengthConf.NonceLength, err = GetBigInt(buf)
 	if err != nil {
 		return err
 	}
@@ -210,7 +212,7 @@ func (p *BBcAsset) Unpack(dat *[]byte) error {
 		return err
 	}
 	if p.AssetFileSize > 0 {
-		p.AssetFileDigest, err = GetBigInt(buf)
+		p.AssetFileDigest, _, err = GetBigInt(buf)
 		if err != nil {
 			return err
 		}
@@ -224,7 +226,7 @@ func (p *BBcAsset) Unpack(dat *[]byte) error {
 	if err != nil {
 		return err
 	}
-	p.AssetBody, err = GetBytes(buf, int(p.AssetBodySize))
+	p.AssetBody, _, err = GetBytes(buf, int(p.AssetBodySize))
 
 	return err
 }

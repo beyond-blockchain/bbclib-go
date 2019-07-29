@@ -22,13 +22,23 @@ import (
 )
 
 func TestEventPackUnpack(t *testing.T) {
+	var idLengthConfig = BBcIdConfig {
+		TransactionIdLength: 32,
+		UserIdLength: 32,
+		AssetGroupIdLength: 32,
+		AssetIdLength: 32,
+		NonceLength: 32,
+	}
+
 	t.Run("simple creation (string asset)", func(t *testing.T) {
-		ast := BBcAsset{IDLength: defaultIDLength}
+		ast := BBcAsset{}
+		ast.SetIdLengthConf(&idLengthConfig)
 		u1 := GetIdentifier("user1_789abcdef0123456789abcdef0", defaultIDLength)
 		ast.Add(&u1)
 		ast.AddBodyString("testString12345XXX")
 
-		obj := BBcEvent{IDLength: defaultIDLength}
+		obj := BBcEvent{}
+		obj.SetIdLengthConf(&idLengthConfig)
 		assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
 		obj.Add(&assetgroup, &ast)
 		obj.AddReferenceIndex(1)
@@ -49,7 +59,7 @@ func TestEventPackUnpack(t *testing.T) {
 		obj.AddOptionApprover(&u4)
 
 		t.Log("---------------Event-----------------")
-		t.Logf("id_length: %d", obj.IDLength)
+		t.Logf("id_length_config: %v", obj.IdLengthConf)
 		t.Logf("%v", obj.Stringer())
 		t.Log("--------------------------------------")
 
@@ -59,10 +69,11 @@ func TestEventPackUnpack(t *testing.T) {
 		}
 		t.Logf("Packed data: %x", dat)
 
-		obj2 := BBcEvent{IDLength: defaultIDLength}
+		obj2 := BBcEvent{}
+		obj2.SetIdLengthConf(&idLengthConfig)
 		obj2.Unpack(&dat)
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", obj2.IDLength)
+		t.Logf("id_length_config: %v", obj2.IdLengthConf)
 		t.Logf("%v", obj2.Stringer())
 		t.Log("--------------------------------------")
 
@@ -72,17 +83,19 @@ func TestEventPackUnpack(t *testing.T) {
 	})
 
 	t.Run("simple creation (no approvers)", func(t *testing.T) {
-		ast := BBcAsset{IDLength: defaultIDLength}
+		ast := BBcAsset{}
+		ast.SetIdLengthConf(&idLengthConfig)
 		u1 := GetIdentifier("user1_789abcdef0123456789abcdef0", defaultIDLength)
 		ast.Add(&u1)
 		ast.AddBodyString("testString12345XXX")
 
-		obj := BBcEvent{IDLength: defaultIDLength}
+		obj := BBcEvent{}
+		obj.SetIdLengthConf(&idLengthConfig)
 		assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
 		obj.Add(&assetgroup, &ast)
 
 		t.Log("---------------Event-----------------")
-		t.Logf("id_length: %d", obj.IDLength)
+		t.Logf("id_length_config: %v", obj.IdLengthConf)
 		t.Logf("%v", obj.Stringer())
 		t.Log("--------------------------------------")
 
@@ -92,10 +105,11 @@ func TestEventPackUnpack(t *testing.T) {
 		}
 		t.Logf("Packed data: %x", dat)
 
-		obj2 := BBcEvent{IDLength: defaultIDLength}
+		obj2 := BBcEvent{}
+		obj2.SetIdLengthConf(&idLengthConfig)
 		obj2.Unpack(&dat)
 		t.Log("--------------------------------------")
-		t.Logf("id_length: %d", obj2.IDLength)
+		t.Logf("id_length_config: %v", obj2.IdLengthConf)
 		t.Logf("%v", obj2.Stringer())
 		t.Log("--------------------------------------")
 
