@@ -8,13 +8,16 @@ import (
 )
 
 func main() {
+	idConf := bbclib.BBcIdConfig{16, 12, 10, 8, 24}
+	bbclib.ConfigureIdLength(&idConf)
+
 	assetGroupID := bbclib.GetIdentifierWithTimestamp("assetGroupID", 32)
 	u1 := bbclib.GetIdentifierWithTimestamp("user1", 32)
 	u2 := bbclib.GetIdentifierWithTimestamp("user2", 32)
 	keypair1 := bbclib.GenerateKeypair(bbclib.KeyTypeEcdsaP256v1, 4)
 	keypair2 := bbclib.GenerateKeypair(bbclib.KeyTypeEcdsaSECP256k1, 4)
 
-	txobj := bbclib.MakeTransaction(3, 0, true, 32)
+	txobj := bbclib.MakeTransaction(3, 0, true)
 	bbclib.AddEventAssetBodyString(txobj, 0, &assetGroupID, &u1, "teststring!!!!!")
 	txobj.Events[0].AddMandatoryApprover(&u1)
 	filedat, _ := ioutil.ReadFile("./asset_test.go")

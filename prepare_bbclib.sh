@@ -2,7 +2,7 @@
 
 REPO=github.com/beyond-blockchain/bbclib-go
 
-#go get -u -d ${REPO}
+go get -u -d ${REPO}
 
 if [ -d ./vendor/${REPO} ]; then
     WORKINGDIR=./vendor/${REPO}
@@ -20,5 +20,3 @@ if [ $# -eq 1 ] && [ $1 = "aws" ]; then
 else
   bash prepare.sh
 fi
-
-# go install ${REPO}
