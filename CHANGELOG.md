@@ -1,6 +1,9 @@
 CHANGELOG
 ====
 
+### v1.4.1
+* Add installation script (prepare_bbclib.sh)
+
 ### v1.4
 * ID length configuration support (same as py-bbclib v1.4.1)
 * External public key support (same as py-bbclib v1.4.1)

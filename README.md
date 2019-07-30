@@ -21,6 +21,13 @@ This reposigory is originally from https://github.com/quvox/bbclib-go
 
 ## Usage
 
+import "github.com/beyond-blockchain/bbclib-go"
+
+An example source code is in example/src/main/.
+
+
+## Install (step by step)
+
 ```bash
 go get -u github.com/beyond-blockchain/bbclib-go
 ```
@@ -48,6 +55,17 @@ go install github.com/beyond-blockchain/bbclib-go
 ```
 
 NOTE: [example/](./example) directory includes a sample code for this module. There are a document and a preparation script. 
+
+## Install (easy)
+
+1. Put prepare_bbclib.sh in this repository in your development tree.
+2. Make sure that you set GOPATH env
+3. execute prepare_bbclib.sh as follows:
+```
+bash prepare_bbclib.sh
+```
+
+See example/src/main/ directory for example.
 
 ## Prepare for development (module itself)
 
