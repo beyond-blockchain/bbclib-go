@@ -87,12 +87,14 @@ func (k *KeyPair) ConvertFromPem(pem string, compressionMode int) {
 	privkey := make([]byte, 100)
 	pemByte := ([]byte)(pem)
 
-	var lenPubkey, lenPrivkey C.int
-	C.convert_from_pem((*C.char)(unsafe.Pointer(&pemByte[0])), (C.uint8_t)(compressionMode),
+	var curveType, lenPubkey, lenPrivkey C.int
+	C.convert_from_pem_with_curvetype(
+		(*C.char)(unsafe.Pointer(&pemByte[0])), (C.uint8_t)(compressionMode), &curveType,
 		&lenPubkey, (*C.uint8_t)(unsafe.Pointer(&pubkey[0])),
 		&lenPrivkey, (*C.uint8_t)(unsafe.Pointer(&privkey[0])))
 	k.Pubkey = pubkey[:lenPubkey]
 	k.Privkey = privkey[:lenPrivkey]
+	k.CurveType = int(curveType)
 }
 
 // ConvertFromPem imports DER formatted private key
@@ -100,12 +102,14 @@ func (k *KeyPair) ConvertFromDer(der []byte, compressionMode int) {
 	pubkey := make([]byte, 100)
 	privkey := make([]byte, 100)
 
-	var lenPubkey, lenPrivkey C.int
-	C.convert_from_der(C.long(len(der)), (*C.uint8_t)(unsafe.Pointer(&der[0])), (C.uint8_t)(compressionMode),
+	var curveType, lenPubkey, lenPrivkey C.int
+	C.convert_from_der_with_curvetype(
+		C.long(len(der)), (*C.uint8_t)(unsafe.Pointer(&der[0])), (C.uint8_t)(compressionMode), &curveType,
 		&lenPubkey, (*C.uint8_t)(unsafe.Pointer(&pubkey[0])),
 		&lenPrivkey, (*C.uint8_t)(unsafe.Pointer(&privkey[0])))
 	k.Pubkey = pubkey[:lenPubkey]
 	k.Privkey = privkey[:lenPrivkey]
+	k.CurveType = int(curveType)
 }
 
 // ReadX509 imports X.509 public key certificate
@@ -113,10 +117,12 @@ func (k *KeyPair) ReadX509(cert string, compressionMode int) {
 	pubkey := make([]byte, 100)
 	certByte := ([]byte)(cert)
 
-	var lenPubkey C.int
-	C.read_x509((*C.char)(unsafe.Pointer(&certByte[0])), (C.uint8_t)(compressionMode),
+	var curveType, lenPubkey C.int
+	C.read_x509_with_curvetype(
+		(*C.char)(unsafe.Pointer(&certByte[0])), (C.uint8_t)(compressionMode), &curveType,
 		&lenPubkey, (*C.uint8_t)(unsafe.Pointer(&pubkey[0])))
 	k.Pubkey = pubkey[:lenPubkey]
+	k.CurveType = int(curveType)
 }
 
 // VerifyX509 verifies the public key's legitimacy
