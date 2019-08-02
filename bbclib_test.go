@@ -88,8 +88,8 @@ func makeFollowTXWithUtility(refTxObj *BBcTransaction) *BBcTransaction {
 
 func TestBBcLibUtilitiesTx1(t *testing.T) {
 	assetGroupID = GetIdentifierWithTimestamp("assetGroupID", defaultIDLength)
-	keypair1 = GenerateKeypair(KeyTypeEcdsaP256v1, defaultCompressionMode)
-	keypair2 = GenerateKeypair(KeyTypeEcdsaSECP256k1, defaultCompressionMode)
+	keypair1 = GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
+	keypair2 = GenerateKeypair(KeyTypeEcdsaSECP256k1, DefaultCompressionMode)
 
 	t.Run("MakeTransaction and events", func(t *testing.T) {
 		txobj = MakeTransaction(3, 0, true)

@@ -24,7 +24,7 @@ import (
 func TestSignaturePackUnpack(t *testing.T) {
 
 	t.Run("simple creation (set by keypair)", func(t *testing.T) {
-		keypair := GenerateKeypair(KeyTypeEcdsaP256v1, defaultCompressionMode)
+		keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 		sig := BBcSignature{}
 		sig.SetPublicKeyByKeypair(&keypair)
 		signature := GetRandomValue(64)
@@ -79,7 +79,7 @@ func TestSignaturePackUnpack(t *testing.T) {
 	})
 
 	t.Run("simple creation (external public key for verification)", func(t *testing.T) {
-		keypair := GenerateKeypair(KeyTypeEcdsaP256v1, defaultCompressionMode)
+		keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 		sig := BBcSignature{}
 		sig.SetPublicKeyInfo(KeyTypeEcdsaP256v1)
 		digest := GetRandomValue(64)
