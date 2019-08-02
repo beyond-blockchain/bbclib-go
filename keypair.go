@@ -32,9 +32,10 @@ This object includes functions for sign and verify a signature. The sign/verify 
 */
 type (
 	KeyPair struct {
-		CurveType int
-		Pubkey    []byte
-		Privkey   []byte
+		CurveType		int
+		CompressionType	int
+		Pubkey    		[]byte
+		Privkey   		[]byte
 	}
 )
 
@@ -44,7 +45,7 @@ const (
 	KeyTypeEcdsaSECP256k1 = 1
 	KeyTypeEcdsaP256v1    = 2
 
-	defaultCompressionMode = 4
+	DefaultCompressionMode = 4
 )
 
 // GenerateKeypair generates a new Key pair object with new private key and public key
@@ -57,18 +58,73 @@ func GenerateKeypair(curveType int, compressionMode int) KeyPair {
 	return KeyPair{CurveType: curveType, Pubkey: pubkey[:lenPubkey], Privkey: privkey[:lenPrivkey]}
 }
 
-// ConvertFromPem outputs PEM formatted public key
+// GetPublicKeyUncompressed gets a public key (uncompressed) from private key
+func (k *KeyPair) GetPublicKeyUncompressed() *[]byte {
+	var lenPubkey C.int
+	pubkey := make([]byte, 100)
+	C.get_public_key_uncompressed(C.int(k.CurveType), C.int(len(k.Privkey)),
+		(*C.uint8_t)(unsafe.Pointer(&k.Privkey[0])),
+		&lenPubkey, (*C.uint8_t)(unsafe.Pointer(&pubkey[0])))
+	k.Pubkey = pubkey[:lenPubkey]
+	return &k.Pubkey
+}
+
+// GetPublicKeyCompressed gets a public key (compressed) from private key
+func (k *KeyPair) GetPublicKeyCompressed() *[]byte {
+	var lenPubkey C.int
+	pubkey := make([]byte, 100)
+	C.get_public_key_compressed(C.int(k.CurveType), C.int(len(k.Privkey)),
+		(*C.uint8_t)(unsafe.Pointer(&k.Privkey[0])),
+		&lenPubkey, (*C.uint8_t)(unsafe.Pointer(&pubkey[0])))
+	k.Pubkey = pubkey[:lenPubkey]
+	return &k.Pubkey
+}
+
+
+// ConvertFromPem imports PEM formatted private key
 func (k *KeyPair) ConvertFromPem(pem string, compressionMode int) {
 	pubkey := make([]byte, 100)
 	privkey := make([]byte, 100)
-	pemstr := ([]byte)(pem)
+	pemByte := ([]byte)(pem)
 
 	var lenPubkey, lenPrivkey C.int
-	C.convert_from_pem((*C.char)(unsafe.Pointer(&pemstr[0])), (C.uint8_t)(compressionMode),
+	C.convert_from_pem((*C.char)(unsafe.Pointer(&pemByte[0])), (C.uint8_t)(compressionMode),
 		&lenPubkey, (*C.uint8_t)(unsafe.Pointer(&pubkey[0])),
 		&lenPrivkey, (*C.uint8_t)(unsafe.Pointer(&privkey[0])))
 	k.Pubkey = pubkey[:lenPubkey]
-	k.Privkey = pubkey[:lenPrivkey]
+	k.Privkey = privkey[:lenPrivkey]
+}
+
+// ConvertFromPem imports DER formatted private key
+func (k *KeyPair) ConvertFromDer(der []byte, compressionMode int) {
+	pubkey := make([]byte, 100)
+	privkey := make([]byte, 100)
+
+	var lenPubkey, lenPrivkey C.int
+	C.convert_from_der(C.long(len(der)), (*C.uint8_t)(unsafe.Pointer(&der[0])), (C.uint8_t)(compressionMode),
+		&lenPubkey, (*C.uint8_t)(unsafe.Pointer(&pubkey[0])),
+		&lenPrivkey, (*C.uint8_t)(unsafe.Pointer(&privkey[0])))
+	k.Pubkey = pubkey[:lenPubkey]
+	k.Privkey = privkey[:lenPrivkey]
+}
+
+// ReadX509 imports X.509 public key certificate
+func (k *KeyPair) ReadX509(cert string, compressionMode int) {
+	pubkey := make([]byte, 100)
+	certByte := ([]byte)(cert)
+
+	var lenPubkey C.int
+	C.read_x509((*C.char)(unsafe.Pointer(&certByte[0])), (C.uint8_t)(compressionMode),
+		&lenPubkey, (*C.uint8_t)(unsafe.Pointer(&pubkey[0])))
+	k.Pubkey = pubkey[:lenPubkey]
+}
+
+// VerifyX509 verifies the public key's legitimacy
+func (k *KeyPair) CheckX509(cert string, privkey string) bool {
+	certByte := ([]byte)(cert)
+	privkeyByte := ([]byte)(privkey)
+	result := C.verify_x509( (*C.char)(unsafe.Pointer(&certByte[0])), (*C.char)(unsafe.Pointer(&privkeyByte[0])))
+	return result == 1
 }
 
 // Sign to a given digest
@@ -107,6 +163,34 @@ func (k *KeyPair) Verify(digest []byte, sig []byte) bool {
 		C.int(len(digest)), (*C.uint8_t)(unsafe.Pointer(&digest[0])),
 		C.int(len(sig)), (*C.uint8_t)(unsafe.Pointer(&sig[0])))
 	return result == 1
+}
+
+// OutputDer outputs DER formatted private key
+func (k *KeyPair) OutputDer() []byte {
+	der := make([]byte, 1024)
+	C.output_der(C.int(k.CurveType), C.int(len(k.Privkey)), (*C.uint8_t)(unsafe.Pointer(&k.Privkey[0])), (*C.uint8_t)(unsafe.Pointer(&der[0])))
+	return der
+}
+
+// OutputDer outputs PEM formatted private key
+func (k *KeyPair) OutputPem() string {
+	pem := make([]byte, 2048)
+	C.output_pem(C.int(k.CurveType), C.int(len(k.Privkey)), (*C.uint8_t)(unsafe.Pointer(&k.Privkey[0])), (*C.uint8_t)(unsafe.Pointer(&pem[0])))
+	return string(pem)
+}
+
+// OutputDer outputs DER formatted private key
+func (k *KeyPair) OutputPublicKeyDer() []byte {
+	der := make([]byte, 8192)
+	C.output_public_key_der(C.int(k.CurveType), C.int(len(k.Pubkey)), (*C.uint8_t)(unsafe.Pointer(&k.Pubkey[0])), (*C.uint8_t)(unsafe.Pointer(&der[0])))
+	return der
+}
+
+// OutputDer outputs PEM formatted private key
+func (k *KeyPair) OutputPublicKeyPem() string {
+	pem := make([]byte, 32768)
+	C.output_public_key_pem(C.int(k.CurveType), C.int(len(k.Pubkey)), (*C.uint8_t)(unsafe.Pointer(&k.Pubkey[0])), (*C.uint8_t)(unsafe.Pointer(&pem[0])))
+	return string(pem)
 }
 
 // VerifyBBcSignature verifies a given digest with BBcSignature object

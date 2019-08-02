@@ -18,13 +18,14 @@ package bbclib
 
 import (
 	"crypto/sha256"
+	"bytes"
 	"testing"
 )
 
 func TestGenerateKeypair(t *testing.T) {
 	for curvetype := 1; curvetype < 3; curvetype++ {
 		t.Run("curvetype", func(t *testing.T) {
-			keypair := GenerateKeypair(curvetype, defaultCompressionMode)
+			keypair := GenerateKeypair(curvetype, DefaultCompressionMode)
 			t.Logf("keypair: %v", keypair)
 			if len(keypair.Pubkey) != 65 {
 				t.Fatal("fail to generate keypair")
@@ -40,8 +41,8 @@ func TestKeyPair_Sign_and_Verify(t *testing.T) {
 	t.Logf("SHA-256 digest2: %x\n", digest2)
 
 	for curvetype := 1; curvetype < 3; curvetype++ {
-		keypair := GenerateKeypair(curvetype, defaultCompressionMode)
-		keypair2 := GenerateKeypair(curvetype, defaultCompressionMode)
+		keypair := GenerateKeypair(curvetype, DefaultCompressionMode)
+		keypair2 := GenerateKeypair(curvetype, DefaultCompressionMode)
 		t.Run("curvetype", func(t *testing.T) {
 			t.Logf("Curvetype = %d", curvetype)
 			if len(keypair.Pubkey) != 65 {
@@ -101,7 +102,7 @@ func TestVerifyBBcSignature(t *testing.T) {
 
 	for curvetype := 1; curvetype < 3; curvetype++ {
 		t.Run("curvetype", func(t *testing.T) {
-			keypair := GenerateKeypair(curvetype, defaultCompressionMode)
+			keypair := GenerateKeypair(curvetype, DefaultCompressionMode)
 			sig := BBcSignature{}
 			sig.SetPublicKey(uint32(curvetype), &keypair.Pubkey)
 			signature := keypair.Sign(digest[:])
@@ -118,7 +119,7 @@ func TestVerifyBBcSignature(t *testing.T) {
 			}
 			t.Log("Verify succeeded")
 
-			keypair2 := GenerateKeypair(curvetype, defaultCompressionMode)
+			keypair2 := GenerateKeypair(curvetype, DefaultCompressionMode)
 			sig2 := BBcSignature{}
 			sig2.SetPublicKey(uint32(curvetype), &keypair.Pubkey)
 			signature2 := keypair2.Sign(digest[:])
@@ -135,11 +136,35 @@ func TestVerifyBBcSignature(t *testing.T) {
 func TestKeyPair_ConvertFromPem(t *testing.T) {
 	pem := "-----BEGIN EC PRIVATE KEY-----\nMHQCAQEEIIMVMPKLJqivgRDpRDaWJCOnob6s/+t4MdoFN/8PVkNSoAcGBSuBBAAK\noUQDQgAE/k1ZM/Ker1+N0+Lg5za0sJZeSAAeYwDEWnkgnkCynErs74G/tAnu/lcu\nk8kzAivYm8mitIpJJw1OdjCDJI457g==\n-----END EC PRIVATE KEY-----"
 	keypair := KeyPair{CurveType: KeyTypeEcdsaSECP256k1}
-	keypair.ConvertFromPem(pem, defaultCompressionMode)
+	keypair.ConvertFromPem(pem, DefaultCompressionMode)
 	t.Logf("keypair: %v", keypair)
 
 	if len(keypair.Privkey) != 32 {
 		t.Fatal("failed to read private key in pem format")
 	}
 	t.Logf("private key: %x", keypair.Privkey)
+}
+
+func TestKeyPair_OutputKey(t *testing.T) {
+	keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
+	der := keypair.OutputDer()
+	pem := keypair.OutputPem()
+
+	keypair2 := KeyPair{CurveType: KeyTypeEcdsaP256v1}
+	keypair2.ConvertFromDer(der, DefaultCompressionMode)
+	if bytes.Compare(keypair.Privkey, keypair2.Privkey) != 0 {
+		t.Fatal("export or import is failed (DER)")
+	}
+
+	pubkey2 := keypair2.GetPublicKeyCompressed()
+	t.Logf("public key (compressed): %v", pubkey2)
+
+	keypair3 := KeyPair{CurveType: KeyTypeEcdsaP256v1}
+	keypair3.ConvertFromPem(pem, DefaultCompressionMode)
+	if bytes.Compare(keypair.Privkey, keypair3.Privkey) != 0 {
+		t.Fatal("export or import is failed (PEM)")
+	}
+
+	pubkey3 := keypair3.GetPublicKeyCompressed()
+	t.Logf("public key (compressed): %v", pubkey3)
 }

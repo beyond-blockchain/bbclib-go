@@ -31,19 +31,19 @@ var idLengthConfig = BBcIdConfig {
 }
 
 var (
-	u1 = GetIdentifier("user1_789abcdef0123456789abcdef0", defaultIDLength)
-	u2 = GetIdentifierWithTimestamp("user2", defaultIDLength)
-	u3 = GetIdentifierWithTimestamp("user3", defaultIDLength)
-	u4 = GetIdentifierWithTimestamp("user4", defaultIDLength)
-	u5 = GetIdentifierWithTimestamp("user5", defaultIDLength)
-	u6 = GetIdentifierWithTimestamp("user6", defaultIDLength)
+	txtest_u1 = GetIdentifier("user1_789abcdef0123456789abcdef0", defaultIDLength)
+	txtest_u2 = GetIdentifierWithTimestamp("user2", defaultIDLength)
+	txtest_u3 = GetIdentifierWithTimestamp("user3", defaultIDLength)
+	txtest_u4 = GetIdentifierWithTimestamp("user4", defaultIDLength)
+	txtest_u5 = GetIdentifierWithTimestamp("user5", defaultIDLength)
+	txtest_u6 = GetIdentifierWithTimestamp("user6", defaultIDLength)
 )
 
 
 func makeBaseTx(idconf BBcIdConfig) BBcTransaction {
 	txobj := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
 	txobj.SetIdLengthConf(&idconf)
-	keypair := GenerateKeypair(KeyTypeEcdsaP256v1, defaultCompressionMode)
+	keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 	evt := BBcEvent{}
 	txobj.AddEvent(&evt)
 	crs := BBcCrossRef{}
@@ -53,34 +53,34 @@ func makeBaseTx(idconf BBcIdConfig) BBcTransaction {
 
 	ast := BBcAsset{}
 	ast.SetIdLengthConf(&idconf)
-	ast.Add(&u1)
+	ast.Add(&txtest_u1)
 	ast.AddBodyString("testString12345XXX")
 
 	assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
 	evt.Add(&assetgroup, &ast)
 
-	evt.AddMandatoryApprover(&u1)
-	evt.AddMandatoryApprover(&u2)
+	evt.AddMandatoryApprover(&txtest_u1)
+	evt.AddMandatoryApprover(&txtest_u2)
 	evt.AddOptionParams(1, 2)
-	evt.AddOptionApprover(&u3)
-	evt.AddOptionApprover(&u4)
+	evt.AddOptionApprover(&txtest_u3)
+	evt.AddOptionApprover(&txtest_u4)
 
 	dom := GetIdentifier("dummy domain", defaultIDLength)
 	dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
 	crs.Add(&dom, &dummyTxid)
 
-	wit.AddWitness(&u1)
+	wit.AddWitness(&txtest_u1)
 	sig := BBcSignature{}
 	sig.SetPublicKeyByKeypair(&keypair)
 	signature, _ := txobj.Sign(&keypair)
 	sig.SetSignature(&signature)
-	wit.AddSignature(&u1, &sig)
+	wit.AddSignature(&txtest_u1, &sig)
 
 	return txobj
 }
 
 func makeFollowTX(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcTransaction {
-	keypair := GenerateKeypair(KeyTypeEcdsaP256v1, defaultCompressionMode)
+	keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 	txobj := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
 	txobj.SetIdLengthConf(&idconf)
 	rtn := BBcRelation{}
@@ -104,7 +104,7 @@ func makeFollowTX(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcTransaction {
 	rtn.AddPointer(&ptr1)
 	rtn.AddPointer(&ptr2)
 
-	ast.Add(&u1)
+	ast.Add(&txtest_u1)
 	ast.AddBodyString("testString12345XXX")
 
 	txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
@@ -113,9 +113,9 @@ func makeFollowTX(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcTransaction {
 	ptr1.Add(&txid1, &asid1)
 	ptr2.Add(&txid2, nil)
 
-	wit.AddWitness(&u5)
+	wit.AddWitness(&txtest_u5)
 	ref.Add(&assetgroup, refTxObj, 0)
-	wit.AddWitness(&u6)
+	wit.AddWitness(&txtest_u6)
 
 	dom := GetIdentifier("dummy domain", defaultIDLength)
 	dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
@@ -125,31 +125,31 @@ func makeFollowTX(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcTransaction {
 	sig.SetPublicKeyByKeypair(&keypair)
 	signature, _ := txobj.Sign(&keypair)
 	sig.SetSignature(&signature)
-	ref.AddSignature(&u1, &sig)
+	ref.AddSignature(&txtest_u1, &sig)
 
 	sig6 := BBcSignature{}
 	sig6.SetPublicKeyByKeypair(&keypair)
 	signature6, _ := txobj.Sign(&keypair)
 	sig6.SetSignature(&signature6)
-	txobj.AddSignature(&u6, &sig6)
+	txobj.AddSignature(&txtest_u6, &sig6)
 
 	sig2 := BBcSignature{}
 	sig2.SetPublicKeyByKeypair(&keypair)
 	signature2, _ := txobj.Sign(&keypair)
 	sig2.SetSignature(&signature2)
-	ref.AddSignature(&u2, &sig2)
+	ref.AddSignature(&txtest_u2, &sig2)
 
 	sig5 := BBcSignature{}
 	sig5.SetPublicKeyByKeypair(&keypair)
 	signature5, _ := txobj.Sign(&keypair)
 	sig5.SetSignature(&signature5)
-	txobj.AddSignature(&u5, &sig5)
+	txobj.AddSignature(&txtest_u5, &sig5)
 
 	sig4 := BBcSignature{}
 	sig4.SetPublicKeyByKeypair(&keypair)
 	signature3, _ := txobj.Sign(&keypair)
 	sig4.SetSignature(&signature3)
-	ref.AddSignature(&u4, &sig4)
+	ref.AddSignature(&txtest_u4, &sig4)
 
 	return txobj
 }
@@ -157,7 +157,7 @@ func makeFollowTX(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcTransaction {
 
 func TestTransactionPackUnpackSimple(t *testing.T) {
 	t.Run("simple creation (with relation)", func(t *testing.T) {
-		keypair := GenerateKeypair(KeyTypeEcdsaP256v1, defaultCompressionMode)
+		keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 		txobj := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
 		txobj.SetIdLengthConf(&idLengthConfig)
 		rtn := BBcRelation{}
@@ -176,7 +176,7 @@ func TestTransactionPackUnpackSimple(t *testing.T) {
 		rtn.AddPointer(&ptr1)
 		rtn.AddPointer(&ptr2)
 
-		ast.Add(&u1)
+		ast.Add(&txtest_u1)
 		ast.AddBodyString("testString12345XXX")
 
 		txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
@@ -185,8 +185,8 @@ func TestTransactionPackUnpackSimple(t *testing.T) {
 		ptr1.Add(&txid1, &asid1)
 		ptr2.Add(&txid2, nil)
 
-		wit.AddWitness(&u1)
-		wit.AddWitness(&u2)
+		wit.AddWitness(&txtest_u1)
+		wit.AddWitness(&txtest_u2)
 
 		dom := GetIdentifier("dummy domain", defaultIDLength)
 		dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
@@ -196,13 +196,13 @@ func TestTransactionPackUnpackSimple(t *testing.T) {
 		sig.SetPublicKeyByKeypair(&keypair)
 		signature, _ := txobj.Sign(&keypair)
 		sig.SetSignature(&signature)
-		wit.AddSignature(&u1, &sig)
+		wit.AddSignature(&txtest_u1, &sig)
 
 		sig2 := BBcSignature{}
 		sig2.SetPublicKeyByKeypair(&keypair)
 		signature2, _ := txobj.Sign(&keypair)
 		sig2.SetSignature(&signature2)
-		wit.AddSignature(&u2, &sig2)
+		wit.AddSignature(&txtest_u2, &sig2)
 
 		/*
 		t.Log("---------------transaction-----------------")
@@ -274,7 +274,7 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 	})
 
 	t.Run("simple creation (with event/reference)", func(t *testing.T) {
-		keypair := GenerateKeypair(KeyTypeEcdsaP256v1, defaultCompressionMode)
+		keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 		txobj3 := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
 		txobj3.SetIdLengthConf(&idLengthConfig)
 		evt := BBcEvent{}
@@ -286,13 +286,13 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 
 		ast := BBcAsset{}
 		ast.SetIdLengthConf(&idLengthConfig)
-		ast.Add(&u1)
+		ast.Add(&txtest_u1)
 		ast.AddBodyString("testString12345XXX")
 
 		assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
 		evt.Add(&assetgroup, &ast)
 
-		evt.AddMandatoryApprover(&u1)
+		evt.AddMandatoryApprover(&txtest_u1)
 		evt.AddOptionParams(0, 0)
 
 		ref.Add(&assetgroup, &txobj2, 0)
@@ -308,7 +308,7 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 			t.Fatal(err)
 		}
 		sig.SetSignature(&signature)
-		ref.AddSignature(&u1, &sig)
+		ref.AddSignature(&txtest_u1, &sig)
 
 		sig2 := BBcSignature{}
 		sig2.SetPublicKeyByKeypair(&keypair)
@@ -317,7 +317,7 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 			t.Fatal(err)
 		}
 		sig2.SetSignature(&signature2)
-		ref.AddSignature(&u2, &sig2)
+		ref.AddSignature(&txtest_u2, &sig2)
 
 		sig3 := BBcSignature{}
 		sig3.SetPublicKeyByKeypair(&keypair)
@@ -326,7 +326,7 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 			t.Fatal(err)
 		}
 		sig3.SetSignature(&signature3)
-		ref.AddSignature(&u4, &sig3)
+		ref.AddSignature(&txtest_u4, &sig3)
 
 		/*
 		t.Log("---------------transaction-----------------")
@@ -365,7 +365,7 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 	})
 
 	t.Run("pack/unpack between creating a tx and signing to it", func(t *testing.T) {
-		keypair := GenerateKeypair(KeyTypeEcdsaP256v1, defaultCompressionMode)
+		keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 		txobj4 := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
 		txobj4.SetIdLengthConf(&idLengthConfig)
 		rtn := BBcRelation{}
@@ -389,7 +389,7 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		rtn.AddPointer(&ptr1)
 		rtn.AddPointer(&ptr2)
 
-		ast.Add(&u1)
+		ast.Add(&txtest_u1)
 		ast.AddBodyString("testString12345XXX")
 
 		txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
@@ -398,9 +398,9 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		ptr1.Add(&txid1, &asid1)
 		ptr2.Add(&txid2, nil)
 
-		wit.AddWitness(&u5)
+		wit.AddWitness(&txtest_u5)
 		ref.Add(&assetgroup, &txobj2, 0)
-		wit.AddWitness(&u6)
+		wit.AddWitness(&txtest_u6)
 
 		dom := GetIdentifier("dummy domain", defaultIDLength)
 		dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
@@ -442,8 +442,8 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 			t.Fatal(err)
 		}
 		sig.SetSignature(&signature)
-		refObj.AddSignature(&u1, &sig)
-		ref.AddSignature(&u1, &sig)
+		refObj.AddSignature(&txtest_u1, &sig)
+		ref.AddSignature(&txtest_u1, &sig)
 
 		sig6 := BBcSignature{}
 		sig6.SetPublicKeyByKeypair(&keypair)
@@ -452,8 +452,8 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 			t.Fatal(err)
 		}
 		sig6.SetSignature(&signature6)
-		obj4.AddSignature(&u6, &sig6)
-		txobj4.AddSignature(&u6, &sig6)
+		obj4.AddSignature(&txtest_u6, &sig6)
+		txobj4.AddSignature(&txtest_u6, &sig6)
 
 		sig2 := BBcSignature{}
 		sig2.SetPublicKeyByKeypair(&keypair)
@@ -462,8 +462,8 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 			t.Fatal(err)
 		}
 		sig2.SetSignature(&signature2)
-		refObj.AddSignature(&u2, &sig2)
-		ref.AddSignature(&u2, &sig2)
+		refObj.AddSignature(&txtest_u2, &sig2)
+		ref.AddSignature(&txtest_u2, &sig2)
 
 		sig5 := BBcSignature{}
 		sig5.SetPublicKeyByKeypair(&keypair)
@@ -472,8 +472,8 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 			t.Fatal(err)
 		}
 		sig5.SetSignature(&signature5)
-		obj4.AddSignature(&u5, &sig5)
-		txobj4.AddSignature(&u5, &sig5)
+		obj4.AddSignature(&txtest_u5, &sig5)
+		txobj4.AddSignature(&txtest_u5, &sig5)
 
 		sig4 := BBcSignature{}
 		sig4.SetPublicKeyByKeypair(&keypair)
@@ -482,8 +482,8 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 			t.Fatal(err)
 		}
 		sig4.SetSignature(&signature3)
-		refObj.AddSignature(&u4, &sig4)
-		ref.AddSignature(&u4, &sig4)
+		refObj.AddSignature(&txtest_u4, &sig4)
+		ref.AddSignature(&txtest_u4, &sig4)
 
 		t.Log("---------------transaction-----------------")
 		t.Logf("%v", obj4.Stringer())

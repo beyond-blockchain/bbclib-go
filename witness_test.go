@@ -21,7 +21,7 @@ import (
 	"testing"
 )
 
-var idLengthConfig = BBcIdConfig {
+var witTest_idLengthConfig = BBcIdConfig {
 	TransactionIdLength: 32,
 	UserIdLength: 32,
 	AssetGroupIdLength: 32,
@@ -32,9 +32,9 @@ var idLengthConfig = BBcIdConfig {
 func TestWitnessPackUnpack(t *testing.T) {
 	t.Run("simple creation (string asset)", func(t *testing.T) {
 		txobj := BBcTransaction{}
-		txobj.SetIdLengthConf(&idLengthConfig)
+		txobj.SetIdLengthConf(&witTest_idLengthConfig)
 		obj := BBcWitness{Transaction: &txobj}
-		obj.SetIdLengthConf(&idLengthConfig)
+		obj.SetIdLengthConf(&witTest_idLengthConfig)
 		u1 := GetIdentifier("user1_789abcdef0123456789abcdef0", defaultIDLength)
 		u2 := GetIdentifierWithTimestamp("user2", defaultIDLength)
 
@@ -58,7 +58,7 @@ func TestWitnessPackUnpack(t *testing.T) {
 
 		txobj2 := BBcTransaction{}
 		obj2 := BBcWitness{}
-		obj2.SetIdLengthConf(&idLengthConfig)
+		obj2.SetIdLengthConf(&witTest_idLengthConfig)
 		obj2.SetTransaction(&txobj2)
 		obj2.Unpack(&dat)
 		t.Log("--------------------------------------")
@@ -75,7 +75,7 @@ func TestWitnessPackUnpack(t *testing.T) {
 func TestWitnessInvalidAccess(t *testing.T) {
 	t.Run("no transaction", func(t *testing.T) {
 		obj := BBcWitness{}
-		obj.SetIdLengthConf(&idLengthConfig)
+		obj.SetIdLengthConf(&witTest_idLengthConfig)
 		u1 := GetIdentifier("user1_789abcdef0123456789abcdef0", defaultIDLength)
 
 		err := obj.AddWitness(&u1)
