@@ -1,6 +1,10 @@
 CHANGELOG
 ====
 
+## v1.4.3
+* Add utility to include signature (SignAndAdd function)
+  * Note that the function does not work correctly for a transaction with BBcReference
+
 ## v1.4.2
 * Add key import/export functions in keypair.go
 
