@@ -145,24 +145,30 @@ func TestKeyPair_ConvertFromPem(t *testing.T) {
 	t.Logf("private key: %x", keypair.Privkey)
 }
 
-func TestKeyPair_OutputKey(t *testing.T) {
+func TestKeyPair_Export_Import(t *testing.T) {
 	keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 	der := keypair.OutputDer()
 	pem := keypair.OutputPem()
 
-	keypair2 := KeyPair{CurveType: KeyTypeEcdsaP256v1}
+	keypair2 := KeyPair{CurveType: 0}
 	keypair2.ConvertFromDer(der, DefaultCompressionMode)
 	if bytes.Compare(keypair.Privkey, keypair2.Privkey) != 0 {
 		t.Fatal("export or import is failed (DER)")
+	}
+	if keypair.CurveType != keypair2.CurveType {
+		t.Fatal("curve type cannot be obtained (DER)")
 	}
 
 	pubkey2 := keypair2.GetPublicKeyCompressed()
 	t.Logf("public key (compressed): %v", pubkey2)
 
-	keypair3 := KeyPair{CurveType: KeyTypeEcdsaP256v1}
+	keypair3 := KeyPair{CurveType: 0}
 	keypair3.ConvertFromPem(pem, DefaultCompressionMode)
 	if bytes.Compare(keypair.Privkey, keypair3.Privkey) != 0 {
 		t.Fatal("export or import is failed (PEM)")
+	}
+	if keypair.CurveType != keypair3.CurveType {
+		t.Fatal("curve type cannot be obtained (PEM)")
 	}
 
 	pubkey3 := keypair3.GetPublicKeyCompressed()

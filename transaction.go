@@ -220,6 +220,25 @@ func (p *BBcTransaction) Sign(keypair *KeyPair) ([]byte, error) {
 	return signature, nil
 }
 
+// SignAndAdd signs to TransactionID and add BBcSignature in the transaction
+func (p *BBcTransaction) SignAndAdd(keypair *KeyPair, userID []byte, noPubkey bool) error {
+	if p.TransactionID == nil {
+		p.Digest()
+	}
+	signature := keypair.Sign(p.TransactionID)
+	if signature == nil {
+		return errors.New("fail to sign")
+	}
+	idx := p.GetSigIndex(userID)
+	p.Signatures[idx].KeyType = uint32(keypair.CurveType)
+	p.Signatures[idx].SetSignature(&signature)
+	if ! noPubkey {
+		p.Signatures[idx].Pubkey = keypair.Pubkey
+		p.Signatures[idx].PubkeyLen = uint32(len(keypair.Pubkey) * 8)
+	}
+	return nil
+}
+
 // VerifyAll verifies TransactionID with all BBcSignature objects in the transaction
 func (p *BBcTransaction) VerifyAll() (bool, int) {
 	digest := p.Digest()
