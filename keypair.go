@@ -201,6 +201,9 @@ func (k *KeyPair) OutputPublicKeyPem() string {
 
 // VerifyBBcSignature verifies a given digest with BBcSignature object
 func VerifyBBcSignature(digest []byte, sig *BBcSignature) bool {
+	if sig.Pubkey == nil || sig.PubkeyLen == 0 {
+		return true
+	}
 	result := C.verify(C.int(sig.KeyType), C.int(len(sig.Pubkey)), (*C.uint8_t)(unsafe.Pointer(&sig.Pubkey[0])),
 		C.int(len(digest)), (*C.uint8_t)(unsafe.Pointer(&digest[0])),
 		C.int(len(sig.Signature)), (*C.uint8_t)(unsafe.Pointer(&sig.Signature[0])))

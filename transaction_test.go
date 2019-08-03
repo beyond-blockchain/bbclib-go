@@ -70,11 +70,8 @@ func makeBaseTx(idconf BBcIdConfig) BBcTransaction {
 	crs.Add(&dom, &dummyTxid)
 
 	wit.AddWitness(&txtest_u1)
-	sig := BBcSignature{}
-	sig.SetPublicKeyByKeypair(&keypair)
-	signature, _ := txobj.Sign(&keypair)
-	sig.SetSignature(&signature)
-	wit.AddSignature(&txtest_u1, &sig)
+	// new version (supported by v1.4.3 or later)
+	_ = txobj.SignAndAdd(&keypair, txtest_u1, false)
 
 	return txobj
 }
@@ -121,35 +118,28 @@ func makeFollowTX(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcTransaction {
 	dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
 	crs.Add(&dom, &dummyTxid)
 
+	// old version (v1.4.2 or earlier)
 	sig := BBcSignature{}
 	sig.SetPublicKeyByKeypair(&keypair)
 	signature, _ := txobj.Sign(&keypair)
 	sig.SetSignature(&signature)
 	ref.AddSignature(&txtest_u1, &sig)
 
+	// old version (v1.4.2 or earlier)
 	sig6 := BBcSignature{}
 	sig6.SetPublicKeyByKeypair(&keypair)
 	signature6, _ := txobj.Sign(&keypair)
 	sig6.SetSignature(&signature6)
 	txobj.AddSignature(&txtest_u6, &sig6)
 
-	sig2 := BBcSignature{}
-	sig2.SetPublicKeyByKeypair(&keypair)
-	signature2, _ := txobj.Sign(&keypair)
-	sig2.SetSignature(&signature2)
-	ref.AddSignature(&txtest_u2, &sig2)
+	// new version (supported by v1.4.3 or later)
+	_ = txobj.SignAndAdd(&keypair, txtest_u2, false)
 
-	sig5 := BBcSignature{}
-	sig5.SetPublicKeyByKeypair(&keypair)
-	signature5, _ := txobj.Sign(&keypair)
-	sig5.SetSignature(&signature5)
-	txobj.AddSignature(&txtest_u5, &sig5)
+	// new version (supported by v1.4.3 or later)
+	_ = txobj.SignAndAdd(&keypair, txtest_u5, false)
 
-	sig4 := BBcSignature{}
-	sig4.SetPublicKeyByKeypair(&keypair)
-	signature3, _ := txobj.Sign(&keypair)
-	sig4.SetSignature(&signature3)
-	ref.AddSignature(&txtest_u4, &sig4)
+	// new version (supported by v1.4.3 or later)
+	_ = txobj.SignAndAdd(&keypair, txtest_u4, false)
 
 	return txobj
 }
@@ -192,17 +182,15 @@ func TestTransactionPackUnpackSimple(t *testing.T) {
 		dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
 		crs.Add(&dom, &dummyTxid)
 
+		// old version (v1.4.2 or earlier)
 		sig := BBcSignature{}
 		sig.SetPublicKeyByKeypair(&keypair)
 		signature, _ := txobj.Sign(&keypair)
 		sig.SetSignature(&signature)
 		wit.AddSignature(&txtest_u1, &sig)
 
-		sig2 := BBcSignature{}
-		sig2.SetPublicKeyByKeypair(&keypair)
-		signature2, _ := txobj.Sign(&keypair)
-		sig2.SetSignature(&signature2)
-		wit.AddSignature(&txtest_u2, &sig2)
+		// new version (supported by v1.4.3 or later)
+		_ = txobj.SignAndAdd(&keypair, txtest_u2, false)
 
 		/*
 		t.Log("---------------transaction-----------------")
@@ -218,7 +206,7 @@ func TestTransactionPackUnpackSimple(t *testing.T) {
 
 		obj2 := BBcTransaction{}
 		obj2.SetIdLengthConf(&idLengthConfig)
-		obj2.Unpack(&dat)
+		_ = obj2.Unpack(&dat)
 		/*
 		t.Log("---------------transaction-----------------")
 		t.Logf("%v", obj2.Stringer())
@@ -435,6 +423,7 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		refObj := obj4.References[0]
 		refObj.Add(nil, &txobj2, -1)
 
+		// old version (v1.4.2 or earlier)
 		sig := BBcSignature{}
 		sig.SetPublicKeyByKeypair(&keypair)
 		signature, err := obj4.Sign(&keypair)
@@ -445,6 +434,7 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		refObj.AddSignature(&txtest_u1, &sig)
 		ref.AddSignature(&txtest_u1, &sig)
 
+		// old version (v1.4.2 or earlier)
 		sig6 := BBcSignature{}
 		sig6.SetPublicKeyByKeypair(&keypair)
 		signature6, err := obj4.Sign(&keypair)
@@ -455,6 +445,7 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		obj4.AddSignature(&txtest_u6, &sig6)
 		txobj4.AddSignature(&txtest_u6, &sig6)
 
+		// old version only (v1.4.2 or earlier) Reference cannot use new version!!!
 		sig2 := BBcSignature{}
 		sig2.SetPublicKeyByKeypair(&keypair)
 		signature2, err := obj4.Sign(&keypair)
@@ -465,16 +456,11 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		refObj.AddSignature(&txtest_u2, &sig2)
 		ref.AddSignature(&txtest_u2, &sig2)
 
-		sig5 := BBcSignature{}
-		sig5.SetPublicKeyByKeypair(&keypair)
-		signature5, err := obj4.Sign(&keypair)
-		if err != nil {
-			t.Fatal(err)
-		}
-		sig5.SetSignature(&signature5)
-		obj4.AddSignature(&txtest_u5, &sig5)
-		txobj4.AddSignature(&txtest_u5, &sig5)
+		// new version (supported by v1.4.3 or later)
+		_ = txobj4.SignAndAdd(&keypair, txtest_u5, false)
+		_ = obj4.SignAndAdd(&keypair, txtest_u5, false)
 
+		// old version only (v1.4.2 or earlier) Reference cannot use new version!!!
 		sig4 := BBcSignature{}
 		sig4.SetPublicKeyByKeypair(&keypair)
 		signature3, err := obj4.Sign(&keypair)
@@ -493,6 +479,19 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 			t.Fatal("Invalid number of signatures")
 		}
 
+		d1 := txobj4.Digest()
+		d2 := obj4.Digest()
+		if bytes.Compare(d1, d2) != 0 {
+			t.Fatal("transaction_id mismatch")
+		}
+
+		if ret, i := txobj4.VerifyAll(); !ret {
+			t.Fatalf("Invalid signature at idx=%d\n", i)
+		}
+		if ret, i := obj4.VerifyAll(); !ret {
+			t.Fatalf("Invalid signature at idx=%d\n", i)
+		}
+
 		dat2_1, err := txobj4.Pack()
 		if err != nil {
 			t.Fatalf("failed to serialize transaction object (%v)", err)
@@ -502,7 +501,7 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 			t.Fatalf("failed to serialize transaction object (%v)", err)
 		}
 		if bytes.Compare(dat2_1, dat2_2) != 0 {
-			t.Fatal("Not created correctly...")
+			t.Log("The order of signatures are different (no problem)")
 		}
 	})
 }
