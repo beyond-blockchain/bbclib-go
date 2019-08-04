@@ -74,7 +74,7 @@ func (p *BBcCrossRef) Pack() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	PutBigInt(buf, &p.DomainID, DomainIDLength)
-	PutBigInt(buf, &p.TransactionID, 32)
+	PutBigInt(buf, &p.TransactionID, p.IdLengthConf.TransactionIdLength)
 
 	return buf.Bytes(), nil
 }

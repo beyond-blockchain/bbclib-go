@@ -210,10 +210,8 @@ func (p *BBcTransaction) SetSigIndex(userID []byte, idx int) {
 
 // Sign TransactionID using private key in the given keypair
 func (p *BBcTransaction) Sign(keypair *KeyPair) ([]byte, error) {
-	if p.TransactionID == nil {
-		p.Digest()
-	}
-	signature := keypair.Sign(p.TransactionID)
+	digest := p.Digest()
+	signature := keypair.Sign(digest)
 	if signature == nil {
 		return nil, errors.New("fail to sign")
 	}
@@ -222,10 +220,8 @@ func (p *BBcTransaction) Sign(keypair *KeyPair) ([]byte, error) {
 
 // SignAndAdd signs to TransactionID and add BBcSignature in the transaction
 func (p *BBcTransaction) SignAndAdd(keypair *KeyPair, userID []byte, noPubkey bool) error {
-	if p.TransactionID == nil {
-		p.Digest()
-	}
-	signature := keypair.Sign(p.TransactionID)
+	digest := p.Digest()
+	signature := keypair.Sign(digest)
 	if signature == nil {
 		return errors.New("fail to sign")
 	}
