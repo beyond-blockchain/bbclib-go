@@ -95,6 +95,7 @@ func (k *KeyPair) ConvertFromPem(pem string, compressionMode int) {
 	k.Pubkey = pubkey[:lenPubkey]
 	k.Privkey = privkey[:lenPrivkey]
 	k.CurveType = int(curveType)
+	k.CompressionType = compressionMode
 }
 
 // ConvertFromPem imports DER formatted private key
@@ -110,6 +111,7 @@ func (k *KeyPair) ConvertFromDer(der []byte, compressionMode int) {
 	k.Pubkey = pubkey[:lenPubkey]
 	k.Privkey = privkey[:lenPrivkey]
 	k.CurveType = int(curveType)
+	k.CompressionType = compressionMode
 }
 
 // ReadX509 imports X.509 public key certificate

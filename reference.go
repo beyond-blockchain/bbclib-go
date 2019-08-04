@@ -140,7 +140,7 @@ func (p *BBcReference) AddSignature(userID *[]byte, sig *BBcSignature) error {
 func (p *BBcReference) Pack() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
-	PutBigInt(buf, &p.AssetGroupID, p.IdLengthConf.TransactionIdLength)
+	PutBigInt(buf, &p.AssetGroupID, p.IdLengthConf.AssetGroupIdLength)
 	PutBigInt(buf, &p.TransactionID, p.IdLengthConf.TransactionIdLength)
 	Put2byte(buf, p.EventIndexInRef)
 	Put2byte(buf, uint16(len(p.SigIndices)))
