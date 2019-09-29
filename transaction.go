@@ -145,6 +145,7 @@ func (p *BBcTransaction) AddReference(obj *BBcReference) {
 // AddRelation adds the BBcRelation object in the transaction object
 func (p *BBcTransaction) AddRelation(obj *BBcRelation) {
 	obj.SetIdLengthConf(&p.IdLengthConf)
+	obj.SetVersion(p.Version)
 	p.Relations = append(p.Relations, obj)
 }
 
@@ -481,7 +482,7 @@ func (p *BBcTransaction) unpackRelation(buf *bytes.Buffer) error {
 			return err2
 		}
 		data, _, _ := GetBytes(buf, int(size))
-		obj := BBcRelation{}
+		obj := BBcRelation{Version: p.Version}
 		obj.SetIdLengthConf(&p.IdLengthConf)
 		obj.Unpack(&data)
 		p.Relations = append(p.Relations, &obj)

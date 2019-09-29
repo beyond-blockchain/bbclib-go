@@ -18,6 +18,7 @@ package bbclib
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 )
 
@@ -107,6 +108,109 @@ func TestRelationPackUnpack(t *testing.T) {
 
 		if bytes.Compare(obj.AssetGroupID, obj2.AssetGroupID) != 0 || bytes.Compare(obj.Asset.AssetID, obj2.Asset.AssetID) != 0 {
 			t.Fatal("Not recovered correctly...")
+		}
+	})
+
+	t.Run("simple creation (asset_raw)", func(t *testing.T) {
+		obj := BBcRelation{Version: 2}
+		obj.SetIdLengthConf(&idLengthConfig)
+		ptr1 := BBcPointer{}
+		ptr2 := BBcPointer{}
+		ast := BBcAssetRaw{}
+
+		assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
+		obj.AddAssetRaw(&assetgroup, &ast)
+		obj.AddPointer(&ptr1)
+		obj.AddPointer(&ptr2)
+
+		asid := GetIdentifier("user1_789abcdef0123456789abcdef0", idLengthConfig.AssetIdLength)
+		ast.AddBody(&asid, []byte("testString12345XXX"))
+
+		txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
+		txid2 := GetIdentifierWithTimestamp("asdfauflkajethb;:a", defaultIDLength)
+		asid1 := GetIdentifier("123456789abcdef0123456789abcdef0", defaultIDLength)
+		ptr1.Add(&txid1, &asid1)
+		ptr2.Add(&txid2, nil)
+
+		t.Log("---------------Relation-----------------")
+		t.Logf("id_length_config: %v", obj.IdLengthConf)
+		t.Logf("%v", obj.Stringer())
+		t.Log("--------------------------------------")
+
+		dat, err := obj.Pack()
+		if err != nil {
+			t.Fatalf("failed to serialize transaction object (%v)", err)
+		}
+		t.Logf("Packed data: %x", dat)
+
+		obj2 := BBcRelation{Version:2}
+		obj2.SetIdLengthConf(&idLengthConfig)
+		obj2.Unpack(&dat)
+		t.Log("--------------------------------------")
+		t.Logf("id_length_config: %v", obj2.IdLengthConf)
+		t.Logf("%v", obj2.Stringer())
+		t.Log("--------------------------------------")
+
+		if bytes.Compare(obj.AssetGroupID, obj2.AssetGroupID) != 0 || bytes.Compare(obj.AssetRaw.AssetID, obj2.AssetRaw.AssetID) != 0 {
+			t.Fatal("Not recovered correctly...")
+		}
+		if bytes.Compare(obj.AssetRaw.AssetID, obj2.AssetRaw.AssetID) != 0 || bytes.Compare(obj.AssetRaw.AssetBody, obj2.AssetRaw.AssetBody) != 0 {
+			t.Fatal("Not recovered correctly...")
+		}
+	})
+
+	t.Run("simple creation (asset_raw)", func(t *testing.T) {
+		obj := BBcRelation{Version: 2}
+		obj.SetIdLengthConf(&idLengthConfig)
+		ptr1 := BBcPointer{}
+		ptr2 := BBcPointer{}
+		ast := BBcAssetHash{}
+
+		assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
+		obj.AddAssetHash(&assetgroup, &ast)
+		obj.AddPointer(&ptr1)
+		obj.AddPointer(&ptr2)
+
+		for i := 0; i < 10; i++ {
+			asid := GetIdentifier(fmt.Sprintf("asset_id_%d", i), idLengthConfig.AssetIdLength)
+			ast.AddAssetId(&asid)
+		}
+
+		txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
+		txid2 := GetIdentifierWithTimestamp("asdfauflkajethb;:a", defaultIDLength)
+		asid1 := GetIdentifier("123456789abcdef0123456789abcdef0", defaultIDLength)
+		ptr1.Add(&txid1, &asid1)
+		ptr2.Add(&txid2, nil)
+
+		t.Log("---------------Relation-----------------")
+		t.Logf("id_length_config: %v", obj.IdLengthConf)
+		t.Logf("%v", obj.Stringer())
+		t.Log("--------------------------------------")
+
+		dat, err := obj.Pack()
+		if err != nil {
+			t.Fatalf("failed to serialize transaction object (%v)", err)
+		}
+		t.Logf("Packed data: %x", dat)
+
+		obj2 := BBcRelation{Version:2}
+		obj2.SetIdLengthConf(&idLengthConfig)
+		obj2.Unpack(&dat)
+		t.Log("--------------------------------------")
+		t.Logf("id_length_config: %v", obj2.IdLengthConf)
+		t.Logf("%v", obj2.Stringer())
+		t.Log("--------------------------------------")
+
+		if bytes.Compare(obj.AssetGroupID, obj2.AssetGroupID) != 0 {
+			t.Fatal("Not recovered correctly...")
+		}
+		if obj2.AssetHash.AssetIdNum != 10 {
+			t.Fatal("Not recovered correctly...")
+		}
+		for i := 0; i < 10; i++ {
+			if bytes.Compare(obj.AssetHash.AssetIDs[i], obj2.AssetHash.AssetIDs[i]) != 0 {
+				t.Fatal("Not recovered correctly...")
+			}
 		}
 	})
 }

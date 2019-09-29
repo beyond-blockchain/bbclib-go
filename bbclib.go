@@ -164,7 +164,7 @@ func Deserialize(dat []byte) (*BBcTransaction, error) {
 
 // MakeTransaction is a utility for making simple BBcTransaction object with BBcEvent, BBcRelation or/and BBcWitness
 func MakeTransaction(eventNum, relationNum int, witness bool) *BBcTransaction {
-	txobj := BBcTransaction{Version: 1}
+	txobj := BBcTransaction{Version: 2}
 	txobj.SetIdLengthConf(&IdLengthConfig)
 	txobj.Timestamp = time.Now().UnixNano() / int64(time.Microsecond)
 
@@ -225,6 +225,29 @@ func AddRelationAssetBodyObject(transaction *BBcTransaction, relationIdx int, as
 		if err := transaction.Relations[relationIdx].Asset.AddBodyObject(body); err != nil {
 			fmt.Println("Fail to exec AddRelationAssetBodyObject")
 		}
+	}
+}
+
+// AddRelationAssetRawBody sets a data in BBcAssetRaw in BBcRelation and add it to a BBcTransaction object
+func AddRelationAssetRaw(transaction *BBcTransaction, relationIdx int, assetGroupID, assetID *[]byte, assetBody interface{}) {
+	ast := BBcAssetRaw{}
+	ast.SetIdLengthConf(&transaction.IdLengthConf)
+	ast.AddBody(assetID, assetBody)
+	transaction.Relations[relationIdx].AddAssetRaw(assetGroupID, &ast)
+	if transaction.Version < 2 {
+		transaction.Version = 2
+		transaction.Relations[relationIdx].Version = 2
+	}
+}
+
+// AddRelationAssetHash sets assetIDs in BBcAssetHash in BBcRelation and add it to a BBcTransaction object
+func AddRelationAssetHash(transaction *BBcTransaction, relationIdx int, assetGroupID *[]byte) {
+	ast := BBcAssetHash{}
+	ast.SetIdLengthConf(&transaction.IdLengthConf)
+	transaction.Relations[relationIdx].AddAssetHash(assetGroupID, &ast)
+	if transaction.Version < 2 {
+		transaction.Version = 2
+		transaction.Relations[relationIdx].Version = 2
 	}
 }
 

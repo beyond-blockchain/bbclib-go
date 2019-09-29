@@ -37,9 +37,12 @@ If you want to include signature(s) according to the contents of BBcRelation obj
 type (
 	BBcRelation struct {
 		IdLengthConf *BBcIdConfig
+		Version      uint32
 		AssetGroupID []byte
 		Pointers     []*BBcPointer
 		Asset        *BBcAsset
+		AssetRaw     *BBcAssetRaw
+		AssetHash    *BBcAssetHash
 	}
 )
 
@@ -60,12 +63,27 @@ func (p *BBcRelation) Stringer() string {
 	} else {
 		ret += fmt.Sprintf("  Asset: None\n")
 	}
+	if p.AssetRaw != nil {
+		ret += p.AssetRaw.Stringer()
+	} else {
+		ret += fmt.Sprintf("  AssetRaw: None\n")
+	}
+	if p.AssetHash != nil {
+		ret += p.AssetHash.Stringer()
+	} else {
+		ret += fmt.Sprintf("  AssetHash: None\n")
+	}
 	return ret
 }
 
 // Set ID length configuration
 func (p *BBcRelation) SetIdLengthConf(conf * BBcIdConfig) {
 	p.IdLengthConf = conf
+}
+
+// Set version of the transaction format
+func (p *BBcRelation) SetVersion(version uint32) {
+	p.Version = version
 }
 
 // Add sets essential information (assetGroupID and BBcAsset object) to the BBcRelation object
@@ -77,6 +95,30 @@ func (p *BBcRelation) Add(assetGroupID *[]byte, asset *BBcAsset) {
 	if asset != nil {
 		p.Asset = asset
 		p.Asset.SetIdLengthConf(p.IdLengthConf)
+	}
+}
+
+// Add sets essential information (assetGroupID and BBcAssetRaw object) to the BBcRelation object
+func (p *BBcRelation) AddAssetRaw(assetGroupID *[]byte, asset *BBcAssetRaw) {
+	if assetGroupID != nil {
+		p.AssetGroupID = make([]byte, p.IdLengthConf.AssetGroupIdLength)
+		copy(p.AssetGroupID, *assetGroupID)
+	}
+	if asset != nil {
+		p.AssetRaw = asset
+		p.AssetRaw.SetIdLengthConf(p.IdLengthConf)
+	}
+}
+
+// Add sets essential information (assetGroupID and BBcAssetHash object) to the BBcRelation object
+func (p *BBcRelation) AddAssetHash(assetGroupID *[]byte, asset *BBcAssetHash) {
+	if assetGroupID != nil {
+		p.AssetGroupID = make([]byte, p.IdLengthConf.AssetGroupIdLength)
+		copy(p.AssetGroupID, *assetGroupID)
+	}
+	if asset != nil {
+		p.AssetHash = asset
+		p.AssetHash.SetIdLengthConf(p.IdLengthConf)
 	}
 }
 
@@ -114,6 +156,34 @@ func (p *BBcRelation) Pack() ([]byte, error) {
 		}
 	} else {
 		Put4byte(buf, 0)
+	}
+
+	if p.Version >= 2 {
+		if p.AssetRaw != nil {
+			ast, er := p.AssetRaw.Pack()
+			if er != nil {
+				return nil, er
+			}
+			Put4byte(buf, uint32(binary.Size(ast)))
+			if err := binary.Write(buf, binary.LittleEndian, ast); err != nil {
+				return nil, err
+			}
+		} else {
+			Put4byte(buf, 0)
+		}
+
+		if p.AssetHash != nil {
+			ast, er := p.AssetHash.Pack()
+			if er != nil {
+				return nil, er
+			}
+			Put4byte(buf, uint32(binary.Size(ast)))
+			if err := binary.Write(buf, binary.LittleEndian, ast); err != nil {
+				return nil, err
+			}
+		} else {
+			Put4byte(buf, 0)
+		}
 	}
 	return buf.Bytes(), nil
 }
@@ -158,5 +228,34 @@ func (p *BBcRelation) Unpack(dat *[]byte) error {
 		p.Asset.Unpack(&ast)
 	}
 
+	if p.Version >= 2 {
+		assetSize, err := Get4byte(buf)
+		if err != nil {
+			return err
+		}
+		if assetSize > 0 {
+			ast, _, err := GetBytes(buf, int(assetSize))
+			if err != nil {
+				return err
+			}
+			p.AssetRaw = &BBcAssetRaw{}
+			p.AssetRaw.SetIdLengthConf(p.IdLengthConf)
+			p.AssetRaw.Unpack(&ast)
+		}
+
+		assetSize, err = Get4byte(buf)
+		if err != nil {
+			return err
+		}
+		if assetSize > 0 {
+			ast, _, err := GetBytes(buf, int(assetSize))
+			if err != nil {
+				return err
+			}
+			p.AssetHash = &BBcAssetHash{}
+			p.AssetHash.SetIdLengthConf(p.IdLengthConf)
+			p.AssetHash.Unpack(&ast)
+		}
+	}
 	return nil
 }

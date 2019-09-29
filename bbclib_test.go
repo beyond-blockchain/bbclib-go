@@ -222,6 +222,60 @@ func TestBBcLibUtilitiesTx3(t *testing.T) {
 			t.Fatal("Not recovered correctly...")
 		}
 	})
+
+	t.Run("MakeTransaction and relations with BBcAssetRaw", func(t *testing.T) {
+		txobj4 := MakeTransaction(0, 2, true)
+		asid := GetIdentifier("user1_789abcdef0123456789abcdef0", 32)
+		AddRelationAssetRaw(txobj4, 0, &assetGroupID, &asid,"teststring!!!!!")
+
+		datobj2 := map[string]string{"param1": "lll", "param2": "gggg", "param3": "ddd"}
+		rtn := MakeRelationWithAsset(&assetGroupID, &u2, "", &datobj2, nil, 32)
+		txobj4.AddRelation(rtn)
+
+		AddRelationPointer(txobj4, 0, &txobj.TransactionID, nil)
+		AddRelationPointer(txobj4, 1, &txobj2.TransactionID, &txobj2.Events[0].Asset.AssetID)
+
+		txobj4.Witness.AddWitness(&u1)
+		txobj4.Witness.AddWitness(&u2)
+
+		SignToTransaction(txobj4, &u1, &keypair1)
+		SignToTransaction(txobj4, &u2, &keypair2)
+
+		t.Log("-------------transaction--------------")
+		t.Logf("%v", txobj4.Stringer())
+		t.Log("--------------------------------------")
+
+		dat, err := txobj4.Pack()
+		if err != nil {
+			t.Fatalf("failed to serialize transaction object (%v)", err)
+		}
+		t.Logf("Packed data: %x", dat)
+
+		obj2 := BBcTransaction{}
+		obj2.Unpack(&dat)
+		obj2.Digest()
+
+		d1 := txobj4.Digest()
+		d2 := obj2.Digest()
+		if bytes.Compare(d1, d2) != 0 {
+			t.Fatal("transaction_id mismatch")
+		}
+
+		t.Log("-------------transaction--------------")
+		t.Logf("%v", obj2.Stringer())
+		t.Log("--------------------------------------")
+		result, _ := obj2.VerifyAll()
+		if !result {
+			t.Fatal("Verification failed..")
+		}
+
+		if bytes.Compare(txobj4.Relations[0].AssetRaw.AssetID, obj2.Relations[0].AssetRaw.AssetID) != 0 ||
+			bytes.Compare(txobj4.Relations[0].AssetRaw.AssetBody, obj2.Relations[0].AssetRaw.AssetBody) != 0 ||
+			bytes.Compare(txobj4.TransactionID, obj2.TransactionID) != 0 ||
+			len(txobj4.Witness.SigIndices) != 2 || len(obj2.Witness.SigIndices) != 2 {
+			t.Fatal("Not recovered correctly...")
+		}
+	})
 }
 
 func TestBBcLibSerializeDeserialize(t *testing.T) {
