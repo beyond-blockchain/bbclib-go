@@ -77,6 +77,10 @@ func (p *BBcAssetHash) Pack() ([]byte, error) {
 
 // Unpack the BBcAsset object to the binary data
 func (p *BBcAssetHash) Unpack(dat *[]byte) error {
+	if p.IdLengthConf == nil {
+		p.IdLengthConf = &BBcIdConfig{}
+	}
+
 	var err error
 	buf := bytes.NewBuffer(*dat)
 	p.AssetIdNum, err = Get2byte(buf)
@@ -89,7 +93,7 @@ func (p *BBcAssetHash) Unpack(dat *[]byte) error {
 		if err != nil {
 			return err
 		}
-		p.IdLengthConf.UserIdLength = ulen
+		p.IdLengthConf.AssetIdLength = ulen
 		p.AssetIDs = append(p.AssetIDs, assetId)
 	}
 	return nil

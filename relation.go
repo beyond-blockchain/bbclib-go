@@ -19,6 +19,7 @@ package bbclib
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 )
 
@@ -130,6 +131,9 @@ func (p *BBcRelation) AddPointer(pointer *BBcPointer) {
 
 // Pack returns the binary data of the BBcRelation object
 func (p *BBcRelation) Pack() ([]byte, error) {
+	if p.AssetGroupID == nil {
+		return nil, errors.New("need asset_group_id in BBcRelation")
+	}
 	buf := new(bytes.Buffer)
 
 	PutBigInt(buf, &p.AssetGroupID, p.IdLengthConf.AssetGroupIdLength)
@@ -190,6 +194,10 @@ func (p *BBcRelation) Pack() ([]byte, error) {
 
 // Unpack the BBcRelation object to the binary data
 func (p *BBcRelation) Unpack(dat *[]byte) error {
+	if p.IdLengthConf == nil {
+		p.IdLengthConf = &BBcIdConfig{}
+	}
+
 	var err error
 	buf := bytes.NewBuffer(*dat)
 
@@ -209,7 +217,6 @@ func (p *BBcRelation) Unpack(dat *[]byte) error {
 		}
 		ptr, _, _ := GetBytes(buf, int(size))
 		pointer := BBcPointer{}
-		pointer.SetIdLengthConf(p.IdLengthConf)
 		pointer.Unpack(&ptr)
 		p.Pointers = append(p.Pointers, &pointer)
 	}
@@ -224,8 +231,8 @@ func (p *BBcRelation) Unpack(dat *[]byte) error {
 			return err
 		}
 		p.Asset = &BBcAsset{}
-		p.Asset.SetIdLengthConf(p.IdLengthConf)
 		p.Asset.Unpack(&ast)
+		UpdateIdLengthConfig(p.IdLengthConf, p.Asset.IdLengthConf)
 	}
 
 	if p.Version >= 2 {
@@ -239,8 +246,8 @@ func (p *BBcRelation) Unpack(dat *[]byte) error {
 				return err
 			}
 			p.AssetRaw = &BBcAssetRaw{}
-			p.AssetRaw.SetIdLengthConf(p.IdLengthConf)
 			p.AssetRaw.Unpack(&ast)
+			UpdateIdLengthConfig(p.IdLengthConf, p.AssetRaw.IdLengthConf)
 		}
 
 		assetSize, err = Get4byte(buf)
@@ -253,9 +260,10 @@ func (p *BBcRelation) Unpack(dat *[]byte) error {
 				return err
 			}
 			p.AssetHash = &BBcAssetHash{}
-			p.AssetHash.SetIdLengthConf(p.IdLengthConf)
 			p.AssetHash.Unpack(&ast)
+			UpdateIdLengthConfig(p.IdLengthConf, p.AssetHash.IdLengthConf)
 		}
 	}
+
 	return nil
 }

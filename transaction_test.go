@@ -344,15 +344,15 @@ func TestTransactionPackUnpackSimple(t *testing.T) {
 		//t.Logf("Packed data: %x", dat)
 
 		obj2 := BBcTransaction{}
-		obj2.SetIdLengthConf(&idLengthConfig)
 		_ = obj2.Unpack(&dat)
+
 		/*
 		t.Log("---------------transaction-----------------")
 		t.Logf("%v", obj2.Stringer())
 		t.Log("--------------------------------------")
 		 */
 
-		obj2.Digest()
+		//obj2.Digest()
 		if result := obj2.Signatures[0].Verify(obj2.TransactionID); !result {
 			t.Fatal("Verification failed..")
 		}
@@ -381,7 +381,6 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		//t.Logf("Packed data: %x", dat)
 
 		obj2 := BBcTransaction{}
-		obj2.SetIdLengthConf(&idLengthConfig)
 		obj2.Unpack(&dat)
 		/*
 		t.Log("---------------transaction-----------------")
@@ -468,7 +467,6 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		//t.Logf("Packed data: %x", dat)
 
 		obj2 := BBcTransaction{}
-		obj2.SetIdLengthConf(&idLengthConfig)
 		obj2.Unpack(&dat)
 		/*
 		t.Log("---------------transaction-----------------")
@@ -550,11 +548,12 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		//t.Logf("Packed data: %x", dat)
 
 		obj4 := BBcTransaction{}
-		obj4.SetIdLengthConf(&idLengthConfig)
 		obj4.Unpack(&dat)
+		/*
 		t.Log("---------------transaction-----------------")
 		t.Logf("%v", obj4.Stringer())
 		t.Log("--------------------------------------")
+		 */
 		signum = len(obj4.Signatures)
 		if signum != 5 {
 			t.Fatal("Invalid number of signatures")
@@ -610,9 +609,11 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		refObj.AddSignature(&txtest_u4, &sig4)
 		ref.AddSignature(&txtest_u4, &sig4)
 
+		/*
 		t.Log("---------------transaction-----------------")
 		t.Logf("%v", obj4.Stringer())
 		t.Log("--------------------------------------")
+		 */
 		signum = len(obj4.Signatures)
 		if signum != 5 {
 			t.Fatal("Invalid number of signatures")
@@ -768,7 +769,6 @@ func TestTransactionWithAssetRawAndAssetHash(t *testing.T) {
 		//t.Logf("Packed data: %x", dat)
 
 		obj2 := BBcTransaction{}
-		obj2.SetIdLengthConf(&idLengthConfig)
 		obj2.Unpack(&dat)
 
 		d1 := txobj.Digest()
@@ -809,11 +809,15 @@ func TestTransactionWithAssetRawAndAssetHash(t *testing.T) {
 		//t.Logf("Packed data: %x", dat)
 
 		obj2 := BBcTransaction{}
-		obj2.SetIdLengthConf(&idLengthConfig)
 		obj2.Unpack(&dat)
 
 		d1 := txobj.Digest()
 		d2 := obj2.Digest()
+		/*
+		t.Log("---------------transaction-----------------")
+		t.Logf("%v", txobj.Stringer())
+		t.Log("--------------------------------------")
+		 */
 		if bytes.Compare(d1, d2) != 0 {
 			t.Fatal("transaction_id mismatch")
 		}

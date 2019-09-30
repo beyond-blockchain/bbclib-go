@@ -439,8 +439,8 @@ func (p *BBcTransaction) unpackEvent(buf *bytes.Buffer) error {
 			return err2
 		}
 		obj := BBcEvent{}
-		obj.SetIdLengthConf(&p.IdLengthConf)
 		obj.Unpack(&data)
+		UpdateIdLengthConfig(&p.IdLengthConf, obj.IdLengthConf)
 		p.Events = append(p.Events, &obj)
 	}
 	return nil
@@ -462,9 +462,9 @@ func (p *BBcTransaction) unpackReference(buf *bytes.Buffer) error {
 			return err2
 		}
 		obj := BBcReference{}
-		obj.SetIdLengthConf(&p.IdLengthConf)
 		obj.SetTransaction(p)
 		obj.Unpack(&data)
+		UpdateIdLengthConfig(&p.IdLengthConf, obj.IdLengthConf)
 		p.References = append(p.References, &obj)
 	}
 	return nil
@@ -483,8 +483,8 @@ func (p *BBcTransaction) unpackRelation(buf *bytes.Buffer) error {
 		}
 		data, _, _ := GetBytes(buf, int(size))
 		obj := BBcRelation{Version: p.Version}
-		obj.SetIdLengthConf(&p.IdLengthConf)
 		obj.Unpack(&data)
+		UpdateIdLengthConfig(&p.IdLengthConf, obj.IdLengthConf)
 		p.Relations = append(p.Relations, &obj)
 	}
 	return nil

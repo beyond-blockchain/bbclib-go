@@ -101,6 +101,27 @@ func ConfigureIdLengthAll(length int) {
 	}
 }
 
+// Copy new config in refer to main
+func UpdateIdLengthConfig(main, refer *BBcIdConfig) {
+	if refer == nil {
+		return
+	}
+	if refer.TransactionIdLength > 0 && main.TransactionIdLength != refer.TransactionIdLength {
+		main.TransactionIdLength = refer.TransactionIdLength
+	}
+	if refer.UserIdLength > 0 && main.UserIdLength != refer.UserIdLength {
+		main.UserIdLength = refer.UserIdLength
+	}
+	if refer.AssetGroupIdLength > 0 && main.AssetGroupIdLength != refer.AssetGroupIdLength {
+		main.AssetGroupIdLength = refer.AssetGroupIdLength
+	}
+	if refer.AssetIdLength > 0 && main.AssetIdLength != refer.AssetIdLength {
+		main.AssetIdLength = refer.AssetIdLength
+	}
+	if refer.NonceLength > 0 && main.NonceLength != refer.NonceLength {
+		main.NonceLength = refer.NonceLength
+	}
+}
 
 /*
 Serialize BBcTransaction object into packed data
@@ -322,7 +343,7 @@ func AddEventAssetBodyObject(transaction *BBcTransaction, eventIdx int, assetGro
 }
 
 // MakeRelationWithAsset is a utility for making simple BBcTransaction object with BBcRelation with BBcAsset
-func MakeRelationWithAsset(assetGroupID, userID *[]byte, assetBodyString string, assetBodyObject interface{}, assetFile *[]byte, idLength int) *BBcRelation {
+func MakeRelationWithAsset(assetGroupID, userID *[]byte, assetBodyString string, assetBodyObject interface{}, assetFile *[]byte) *BBcRelation {
 	rtn := BBcRelation{}
 	rtn.SetIdLengthConf(&IdLengthConfig)
 	ast := BBcAsset{}

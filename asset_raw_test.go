@@ -47,7 +47,6 @@ func TestAssetRawPackUnpack(t *testing.T) {
 		t.Logf("Packed data: %x", dat)
 
 		obj2 := BBcAssetRaw{}
-		obj2.SetIdLengthConf(&idLengthConfig)
 		obj2.Unpack(&dat)
 		t.Log("--------------------------------------")
 		t.Logf("id_length_config: %v", obj2.IdLengthConf)
@@ -76,7 +75,6 @@ func TestAssetRawPackUnpack(t *testing.T) {
 		t.Logf("Packed data: %x", dat)
 
 		obj2 := BBcAssetRaw{}
-		obj2.SetIdLengthConf(&idLengthConfig)
 		obj2.Unpack(&dat)
 		t.Log("--------------------------------------")
 		t.Logf("id_length_config: %v", obj2.IdLengthConf)

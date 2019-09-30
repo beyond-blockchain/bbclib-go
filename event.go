@@ -137,6 +137,9 @@ func (p *BBcEvent) Pack() ([]byte, error) {
 	if len(p.OptionApprovers) != int(p.OptionApproverNumDenominator) {
 		return nil, errors.New("num of option approvers must be equal to OptionApproverNumDenominator")
 	}
+	if p.AssetGroupID == nil {
+		return nil, errors.New("need asset_group_id in BBcEvent")
+	}
 	buf := new(bytes.Buffer)
 
 	PutBigInt(buf, &p.AssetGroupID, p.IdLengthConf.AssetGroupIdLength)
@@ -210,6 +213,10 @@ func (p *BBcEvent) unpackApprovers(buf *bytes.Buffer) error {
 
 // Unpack the binary data to the BBcEvent object
 func (p *BBcEvent) Unpack(dat *[]byte) error {
+	if p.IdLengthConf == nil {
+		p.IdLengthConf = &BBcIdConfig{}
+	}
+
 	var err error
 	buf := bytes.NewBuffer(*dat)
 
@@ -244,8 +251,8 @@ func (p *BBcEvent) Unpack(dat *[]byte) error {
 			return err
 		}
 		p.Asset = &BBcAsset{}
-		p.Asset.IdLengthConf = p.IdLengthConf
 		p.Asset.Unpack(&ast)
+		UpdateIdLengthConfig(p.IdLengthConf, p.Asset.IdLengthConf)
 	}
 
 	return nil

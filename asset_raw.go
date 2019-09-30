@@ -87,6 +87,10 @@ func (p *BBcAssetRaw) Pack() ([]byte, error) {
 
 // Unpack the BBcAsset object to the binary data
 func (p *BBcAssetRaw) Unpack(dat *[]byte) error {
+	if p.IdLengthConf == nil {
+		p.IdLengthConf = &BBcIdConfig{}
+	}
+
 	var err error
 	buf := bytes.NewBuffer(*dat)
 
