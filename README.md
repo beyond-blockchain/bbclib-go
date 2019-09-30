@@ -12,8 +12,8 @@ This reposigory is originally from https://github.com/quvox/bbclib-go
 
 ### Features
 * Support most of features of py-bbclib in https://github.com/beyond-blockchain/py-bbclib
-    * BBc-1 version 1.4.1
-    * transaction header version 1 only
+    * BBc-1 version 1.5
+    * transaction header version 1 and 2.
 * Go v1.10 or later
 
 ### dependencies
