@@ -1,7 +1,7 @@
 CHANGELOG
 ====
 
-## v1.5
+## v1.5.0
 * add BBcAssetRaw and BBcAssetHash classes
 * the version in BBcTransaction header is 2
 
