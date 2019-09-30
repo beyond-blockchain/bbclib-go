@@ -108,15 +108,17 @@ func TestBBcLibUtilitiesTx1(t *testing.T) {
 		SignToTransaction(txobj, &u1, &keypair1)
 		SignToTransaction(txobj, &u2, &keypair2)
 
+		/*
 		t.Log("-------------transaction--------------")
 		t.Logf("%v", txobj.Stringer())
 		t.Log("--------------------------------------")
+		 */
 
 		dat, err := txobj.Pack()
 		if err != nil {
 			t.Fatalf("failed to serialize transaction object (%v)", err)
 		}
-		t.Logf("Packed data: %x", dat)
+		//t.Logf("Packed data: %x", dat)
 
 		obj2 := BBcTransaction{}
 		obj2.Unpack(&dat)
@@ -150,15 +152,17 @@ func TestBBcLibUtilitiesTx2(t *testing.T) {
 		SignToTransaction(txobj2, &u1, &keypair1)
 		SignToTransaction(txobj2, &u2, &keypair2)
 
+		/*
 		t.Log("-------------transaction--------------")
 		t.Logf("%v", txobj2.Stringer())
 		t.Log("--------------------------------------")
+		 */
 
 		dat, err := txobj2.Pack()
 		if err != nil {
 			t.Fatalf("failed to serialize transaction object (%v)", err)
 		}
-		t.Logf("Packed data: %x", dat)
+		//t.Logf("Packed data: %x", dat)
 
 		obj2 := BBcTransaction{}
 		obj2.Unpack(&dat)
@@ -184,7 +188,7 @@ func TestBBcLibUtilitiesTx3(t *testing.T) {
 		AddRelationAssetBodyObject(txobj3, 2, &assetGroupID, &u1, &datobj)
 
 		datobj2 := map[string]string{"param1": "lll", "param2": "gggg", "param3": "ddd"}
-		rtn := MakeRelationWithAsset(&assetGroupID, &u2, "", &datobj2, nil, 32)
+		rtn := MakeRelationWithAsset(&assetGroupID, &u2, "", &datobj2, nil)
 		txobj3.AddRelation(rtn)
 
 		AddRelationPointer(txobj3, 0, &txobj.TransactionID, nil)
@@ -197,15 +201,17 @@ func TestBBcLibUtilitiesTx3(t *testing.T) {
 		SignToTransaction(txobj3, &u1, &keypair1)
 		SignToTransaction(txobj3, &u2, &keypair2)
 
+		/*
 		t.Log("-------------transaction--------------")
 		t.Logf("%v", txobj3.Stringer())
 		t.Log("--------------------------------------")
+		 */
 
 		dat, err := txobj3.Pack()
 		if err != nil {
 			t.Fatalf("failed to serialize transaction object (%v)", err)
 		}
-		t.Logf("Packed data: %x", dat)
+		//t.Logf("Packed data: %x", dat)
 
 		obj2 := BBcTransaction{}
 		obj2.Unpack(&dat)
@@ -222,6 +228,64 @@ func TestBBcLibUtilitiesTx3(t *testing.T) {
 			t.Fatal("Not recovered correctly...")
 		}
 	})
+
+	t.Run("MakeTransaction and relations with BBcAssetRaw", func(t *testing.T) {
+		txobj4 := MakeTransaction(0, 1, true)
+		asid := GetIdentifier("user1_789abcdef0123456789abcdef0", 32)
+		AddRelationAssetRaw(txobj4, 0, &assetGroupID, &asid,"teststring!!!!!")
+
+		datobj2 := map[string]string{"param1": "lll", "param2": "gggg", "param3": "ddd"}
+		rtn := MakeRelationWithAsset(&assetGroupID, &u2, "", &datobj2, nil)
+		txobj4.AddRelation(rtn)
+
+		AddRelationPointer(txobj4, 0, &txobj.TransactionID, nil)
+		AddRelationPointer(txobj4, 1, &txobj2.TransactionID, &txobj2.Events[0].Asset.AssetID)
+
+		txobj4.Witness.AddWitness(&u1)
+		txobj4.Witness.AddWitness(&u2)
+
+		SignToTransaction(txobj4, &u1, &keypair1)
+		SignToTransaction(txobj4, &u2, &keypair2)
+
+		/*
+		t.Log("-------------transaction--------------")
+		t.Logf("%v", txobj4.Stringer())
+		t.Log("--------------------------------------")
+		 */
+
+		dat, err := txobj4.Pack()
+		if err != nil {
+			t.Fatalf("failed to serialize transaction object (%v)", err)
+		}
+		//t.Logf("Packed data: %x", dat)
+
+		obj2 := BBcTransaction{}
+		obj2.Unpack(&dat)
+		obj2.Digest()
+
+		d1 := txobj4.Digest()
+		d2 := obj2.Digest()
+		if bytes.Compare(d1, d2) != 0 {
+			t.Fatal("transaction_id mismatch")
+		}
+
+		/*
+		t.Log("-------------transaction--------------")
+		t.Logf("%v", obj2.Stringer())
+		t.Log("--------------------------------------")
+		 */
+		result, _ := obj2.VerifyAll()
+		if !result {
+			t.Fatal("Verification failed..")
+		}
+
+		if bytes.Compare(txobj4.Relations[0].AssetRaw.AssetID, obj2.Relations[0].AssetRaw.AssetID) != 0 ||
+			bytes.Compare(txobj4.Relations[0].AssetRaw.AssetBody, obj2.Relations[0].AssetRaw.AssetBody) != 0 ||
+			bytes.Compare(txobj4.TransactionID, obj2.TransactionID) != 0 ||
+			len(txobj4.Witness.SigIndices) != 2 || len(obj2.Witness.SigIndices) != 2 {
+			t.Fatal("Not recovered correctly...")
+		}
+	})
 }
 
 func TestBBcLibSerializeDeserialize(t *testing.T) {
@@ -230,17 +294,19 @@ func TestBBcLibSerializeDeserialize(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to serialize transaction object (%v)", err)
 		}
-		t.Logf("Serialized data: %x", dat)
-		t.Logf("Serialized data size: %d", len(dat))
+		//t.Logf("Serialized data: %x", dat)
+		//t.Logf("Serialized data size: %d", len(dat))
 
 		obj2, err := Deserialize(dat)
 		if err != nil {
 			t.Fatalf("failed to deserialize transaction data (%v)", err)
 		}
+		/*
 		t.Log("--------------------------------------")
 		t.Logf("id_length_config: %v", obj2.IdLengthConf)
 		t.Logf("%v", obj2.Stringer())
 		t.Log("--------------------------------------")
+		 */
 
 		if bytes.Compare(txobj2.TransactionID, obj2.TransactionID) != 0 {
 			t.Fatal("Not recovered correctly...")
@@ -252,17 +318,21 @@ func TestBBcLibSerializeDeserialize(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to serialize transaction object (%v)", err)
 		}
+		/*
 		t.Logf("Serialized data: %x", dat)
 		t.Logf("Serialized data size: %d", len(dat))
+		 */
 
 		obj2, err := Deserialize(dat)
 		if err != nil {
 			t.Fatalf("failed to deserialize transaction data (%v)", err)
 		}
+		/*
 		t.Log("--------------------------------------")
 		t.Logf("id_length_config: %v", obj2.IdLengthConf)
 		t.Logf("%v", obj2.Stringer())
 		t.Log("--------------------------------------")
+		 */
 
 		if bytes.Compare(txobj3.TransactionID, obj2.TransactionID) != 0 {
 			t.Fatal("Not recovered correctly...")
@@ -277,10 +347,12 @@ func TestBBcLibSerializeDeserializePythonData(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to deserialize transaction data (%v)", err)
 		}
+		/*
 		t.Log("--------------------------------------")
 		t.Logf("id_length_config: %v", txobj4.IdLengthConf)
 		t.Logf("%v", txobj4.Stringer())
 		t.Log("--------------------------------------")
+		 */
 
 		txidOrg, _ := hex.DecodeString(txidEventRef)
 		if bytes.Compare(txobj4.TransactionID, txidOrg) != 0 {
@@ -298,10 +370,12 @@ func TestBBcLibSerializeDeserializePythonData(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to deserialize transaction data (%v)", err)
 		}
+		/*
 		t.Log("--------------------------------------")
 		t.Logf("id_length_config: %v", txobj5.IdLengthConf)
 		t.Logf("%v", txobj5.Stringer())
 		t.Log("--------------------------------------")
+		 */
 
 		txidOrg, _ := hex.DecodeString(txidRelation)
 		if bytes.Compare(txobj5.TransactionID, txidOrg) != 0 {

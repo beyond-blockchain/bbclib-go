@@ -18,6 +18,7 @@ package bbclib
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 	"time"
 )
@@ -144,6 +145,144 @@ func makeFollowTX(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcTransaction {
 	return txobj
 }
 
+func makeFollowTXWithAssetRaw(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcTransaction {
+	keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
+	txobj := BBcTransaction{Version: 2, Timestamp: time.Now().UnixNano()}
+	txobj.SetIdLengthConf(&idconf)
+	rtn := BBcRelation{}
+	txobj.AddRelation(&rtn)
+	ref := BBcReference{}
+	txobj.AddReference(&ref)
+	wit := BBcWitness{}
+	txobj.AddWitness(&wit)
+	crs := BBcCrossRef{}
+	txobj.AddCrossRef(&crs)
+
+	ast := BBcAssetRaw{}
+	ast.SetIdLengthConf(&idconf)
+	ptr1 := BBcPointer{}
+	ptr1.SetIdLengthConf(&idconf)
+	ptr2 := BBcPointer{}
+	ptr2.SetIdLengthConf(&idconf)
+
+	assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
+	rtn.AddAssetRaw(&assetgroup, &ast)
+	rtn.AddPointer(&ptr1)
+	rtn.AddPointer(&ptr2)
+
+	asid := GetIdentifier("user1_789abcdef0123456789abcdef0", idLengthConfig.AssetIdLength)
+	ast.AddBody(&asid,"testString12345XXX")
+
+	txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
+	txid2 := GetIdentifierWithTimestamp("asdfauflkajethb;:a", defaultIDLength)
+	asid1 := GetIdentifier("123456789abcdef0123456789abcdef0", defaultIDLength)
+	ptr1.Add(&txid1, &asid1)
+	ptr2.Add(&txid2, nil)
+
+	wit.AddWitness(&txtest_u5)
+	ref.Add(&assetgroup, refTxObj, 0)
+	wit.AddWitness(&txtest_u6)
+
+	dom := GetIdentifier("dummy domain", defaultIDLength)
+	dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
+	crs.Add(&dom, &dummyTxid)
+
+	// old version (v1.4.2 or earlier)
+	sig := BBcSignature{}
+	sig.SetPublicKeyByKeypair(&keypair)
+	signature, _ := txobj.Sign(&keypair)
+	sig.SetSignature(&signature)
+	ref.AddSignature(&txtest_u1, &sig)
+
+	// old version (v1.4.2 or earlier)
+	sig6 := BBcSignature{}
+	sig6.SetPublicKeyByKeypair(&keypair)
+	signature6, _ := txobj.Sign(&keypair)
+	sig6.SetSignature(&signature6)
+	txobj.AddSignature(&txtest_u6, &sig6)
+
+	// new version (supported by v1.4.3 or later)
+	_ = txobj.SignAndAdd(&keypair, txtest_u2, false)
+
+	// new version (supported by v1.4.3 or later)
+	_ = txobj.SignAndAdd(&keypair, txtest_u5, false)
+
+	// new version (supported by v1.4.3 or later)
+	_ = txobj.SignAndAdd(&keypair, txtest_u4, false)
+
+	return txobj
+}
+
+func makeFollowTXWithAssetHash(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcTransaction {
+	keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
+	txobj := BBcTransaction{Version: 2, Timestamp: time.Now().UnixNano()}
+	txobj.SetIdLengthConf(&idconf)
+	rtn := BBcRelation{}
+	txobj.AddRelation(&rtn)
+	ref := BBcReference{}
+	txobj.AddReference(&ref)
+	wit := BBcWitness{}
+	txobj.AddWitness(&wit)
+	crs := BBcCrossRef{}
+	txobj.AddCrossRef(&crs)
+
+	ast := BBcAssetHash{}
+	ast.SetIdLengthConf(&idconf)
+	ptr1 := BBcPointer{}
+	ptr1.SetIdLengthConf(&idconf)
+	ptr2 := BBcPointer{}
+	ptr2.SetIdLengthConf(&idconf)
+
+	assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
+	rtn.AddAssetHash(&assetgroup, &ast)
+	rtn.AddPointer(&ptr1)
+	rtn.AddPointer(&ptr2)
+
+	for i := 0; i < 3; i++ {
+		asid := GetIdentifier(fmt.Sprintf("asset_id_%d", i), idLengthConfig.AssetIdLength)
+		ast.AddAssetId(&asid)
+	}
+
+	txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
+	txid2 := GetIdentifierWithTimestamp("asdfauflkajethb;:a", defaultIDLength)
+	asid1 := GetIdentifier("123456789abcdef0123456789abcdef0", defaultIDLength)
+	ptr1.Add(&txid1, &asid1)
+	ptr2.Add(&txid2, nil)
+
+	wit.AddWitness(&txtest_u5)
+	ref.Add(&assetgroup, refTxObj, 0)
+	wit.AddWitness(&txtest_u6)
+
+	dom := GetIdentifier("dummy domain", defaultIDLength)
+	dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
+	crs.Add(&dom, &dummyTxid)
+
+	// old version (v1.4.2 or earlier)
+	sig := BBcSignature{}
+	sig.SetPublicKeyByKeypair(&keypair)
+	signature, _ := txobj.Sign(&keypair)
+	sig.SetSignature(&signature)
+	ref.AddSignature(&txtest_u1, &sig)
+
+	// old version (v1.4.2 or earlier)
+	sig6 := BBcSignature{}
+	sig6.SetPublicKeyByKeypair(&keypair)
+	signature6, _ := txobj.Sign(&keypair)
+	sig6.SetSignature(&signature6)
+	txobj.AddSignature(&txtest_u6, &sig6)
+
+	// new version (supported by v1.4.3 or later)
+	_ = txobj.SignAndAdd(&keypair, txtest_u2, false)
+
+	// new version (supported by v1.4.3 or later)
+	_ = txobj.SignAndAdd(&keypair, txtest_u5, false)
+
+	// new version (supported by v1.4.3 or later)
+	_ = txobj.SignAndAdd(&keypair, txtest_u4, false)
+
+	return txobj
+}
+
 
 func TestTransactionPackUnpackSimple(t *testing.T) {
 	t.Run("simple creation (with relation)", func(t *testing.T) {
@@ -205,15 +344,15 @@ func TestTransactionPackUnpackSimple(t *testing.T) {
 		//t.Logf("Packed data: %x", dat)
 
 		obj2 := BBcTransaction{}
-		obj2.SetIdLengthConf(&idLengthConfig)
 		_ = obj2.Unpack(&dat)
+
 		/*
 		t.Log("---------------transaction-----------------")
 		t.Logf("%v", obj2.Stringer())
 		t.Log("--------------------------------------")
 		 */
 
-		obj2.Digest()
+		//obj2.Digest()
 		if result := obj2.Signatures[0].Verify(obj2.TransactionID); !result {
 			t.Fatal("Verification failed..")
 		}
@@ -242,7 +381,6 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		//t.Logf("Packed data: %x", dat)
 
 		obj2 := BBcTransaction{}
-		obj2.SetIdLengthConf(&idLengthConfig)
 		obj2.Unpack(&dat)
 		/*
 		t.Log("---------------transaction-----------------")
@@ -329,7 +467,6 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		//t.Logf("Packed data: %x", dat)
 
 		obj2 := BBcTransaction{}
-		obj2.SetIdLengthConf(&idLengthConfig)
 		obj2.Unpack(&dat)
 		/*
 		t.Log("---------------transaction-----------------")
@@ -411,11 +548,12 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		//t.Logf("Packed data: %x", dat)
 
 		obj4 := BBcTransaction{}
-		obj4.SetIdLengthConf(&idLengthConfig)
 		obj4.Unpack(&dat)
+		/*
 		t.Log("---------------transaction-----------------")
 		t.Logf("%v", obj4.Stringer())
 		t.Log("--------------------------------------")
+		 */
 		signum = len(obj4.Signatures)
 		if signum != 5 {
 			t.Fatal("Invalid number of signatures")
@@ -471,9 +609,11 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		refObj.AddSignature(&txtest_u4, &sig4)
 		ref.AddSignature(&txtest_u4, &sig4)
 
+		/*
 		t.Log("---------------transaction-----------------")
 		t.Logf("%v", obj4.Stringer())
 		t.Log("--------------------------------------")
+		 */
 		signum = len(obj4.Signatures)
 		if signum != 5 {
 			t.Fatal("Invalid number of signatures")
@@ -615,3 +755,88 @@ func TestTransactionWithVariousIdLength(t *testing.T) {
 	})
 }
 
+func TestTransactionWithAssetRawAndAssetHash(t *testing.T) {
+	t.Run("transaction with BBcAssetRaw", func(t *testing.T) {
+		idconf := idLengthConfig
+		idconf.TransactionIdLength = 10
+		txprev := makeBaseTx(idconf)
+		txobj := makeFollowTXWithAssetRaw(idconf, &txprev)
+
+		dat, err := txobj.Pack()
+		if err != nil {
+			t.Fatalf("failed to serialize transaction object (%v)", err)
+		}
+		//t.Logf("Packed data: %x", dat)
+
+		obj2 := BBcTransaction{}
+		obj2.Unpack(&dat)
+
+		d1 := txobj.Digest()
+		d2 := obj2.Digest()
+		if bytes.Compare(d1, d2) != 0 {
+			t.Fatal("transaction_id mismatch")
+		}
+
+		result, _ := obj2.VerifyAll()
+		if !result {
+			t.Fatal("Verification failed..")
+		}
+
+		if bytes.Compare(txobj.Relations[0].AssetRaw.AssetID, obj2.Relations[0].AssetRaw.AssetID) != 0 {
+			t.Fatal("Not recovered correctly...")
+		}
+		if bytes.Compare(txobj.Relations[0].AssetRaw.AssetBody, obj2.Relations[0].AssetRaw.AssetBody) != 0 {
+			t.Fatal("Not recovered correctly...")
+		}
+		if bytes.Compare(txobj.Relations[0].Pointers[0].TransactionID, obj2.Relations[0].Pointers[0].TransactionID) != 0 {
+			t.Fatal("Not recovered correctly...")
+		}
+		if bytes.Compare(txobj.Witness.UserIDs[0], obj2.Witness.UserIDs[0]) != 0 {
+			t.Fatal("Not recovered correctly...")
+		}
+	})
+
+	t.Run("transaction with BBcAssetHash", func(t *testing.T) {
+		idconf := idLengthConfig
+		idconf.TransactionIdLength = 10
+		txprev := makeBaseTx(idconf)
+		txobj := makeFollowTXWithAssetHash(idconf, &txprev)
+
+		dat, err := txobj.Pack()
+		if err != nil {
+			t.Fatalf("failed to serialize transaction object (%v)", err)
+		}
+		//t.Logf("Packed data: %x", dat)
+
+		obj2 := BBcTransaction{}
+		obj2.Unpack(&dat)
+
+		d1 := txobj.Digest()
+		d2 := obj2.Digest()
+		/*
+		t.Log("---------------transaction-----------------")
+		t.Logf("%v", txobj.Stringer())
+		t.Log("--------------------------------------")
+		 */
+		if bytes.Compare(d1, d2) != 0 {
+			t.Fatal("transaction_id mismatch")
+		}
+
+		result, _ := obj2.VerifyAll()
+		if !result {
+			t.Fatal("Verification failed..")
+		}
+
+		for i := 0; i < 3; i++ {
+			if bytes.Compare(txobj.Relations[0].AssetHash.AssetIDs[i], obj2.Relations[0].AssetHash.AssetIDs[i]) != 0 {
+				t.Fatal("Not recovered correctly...")
+			}
+		}
+		if bytes.Compare(txobj.Relations[0].Pointers[0].TransactionID, obj2.Relations[0].Pointers[0].TransactionID) != 0 {
+			t.Fatal("Not recovered correctly...")
+		}
+		if bytes.Compare(txobj.Witness.UserIDs[0], obj2.Witness.UserIDs[0]) != 0 {
+			t.Fatal("Not recovered correctly...")
+		}
+	})
+}

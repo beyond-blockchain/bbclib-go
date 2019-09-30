@@ -81,10 +81,14 @@ func (p *BBcPointer) Pack() ([]byte, error) {
 
 // Unpack the BBcPointer object to the binary data
 func (p *BBcPointer) Unpack(dat *[]byte) error {
+	if p.IdLengthConf == nil {
+		p.IdLengthConf = &BBcIdConfig{}
+	}
+
 	var err error
 	buf := bytes.NewBuffer(*dat)
 
-	p.TransactionID, _, err = GetBigInt(buf)
+	p.TransactionID, p.IdLengthConf.TransactionIdLength, err = GetBigInt(buf)
 	if err != nil {
 		return err
 	}
@@ -96,7 +100,7 @@ func (p *BBcPointer) Unpack(dat *[]byte) error {
 		return nil
 	}
 
-	p.AssetID, _, err = GetBigInt(buf)
+	p.AssetID, p.IdLengthConf.AssetIdLength, err = GetBigInt(buf)
 	if err != nil {
 		return err
 	}

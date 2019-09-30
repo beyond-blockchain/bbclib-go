@@ -153,6 +153,10 @@ func (p *BBcReference) Pack() ([]byte, error) {
 
 // Unpack the BBcReference object to the binary data
 func (p *BBcReference) Unpack(dat *[]byte) error {
+	if p.IdLengthConf == nil {
+		p.IdLengthConf = &BBcIdConfig{}
+	}
+
 	var err error
 	buf := bytes.NewBuffer(*dat)
 
@@ -161,7 +165,7 @@ func (p *BBcReference) Unpack(dat *[]byte) error {
 		return err
 	}
 
-	p.TransactionID, _, err = GetBigInt(buf)
+	p.TransactionID, p.IdLengthConf.TransactionIdLength, err = GetBigInt(buf)
 	if err != nil {
 		return err
 	}
