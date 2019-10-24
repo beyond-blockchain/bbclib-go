@@ -18,8 +18,8 @@ var (
 	txobj2           *BBcTransaction
 	txobj3           *BBcTransaction
 	assetGroupID     []byte
-	keypair1         KeyPair
-	keypair2         KeyPair
+	keypair1         *KeyPair
+	keypair2         *KeyPair
 )
 
 var (
@@ -50,7 +50,7 @@ func makeBaseTxWithUtility() *BBcTransaction {
 	txobj.Crossref = &crs
 
 	txobj.Witness.AddWitness(&u1)
-	SignToTransaction(txobj, &u1, &keypair1)
+	SignToTransaction(txobj, &u1, keypair1)
 
 	return txobj
 }
@@ -76,11 +76,11 @@ func makeFollowTXWithUtility(refTxObj *BBcTransaction) *BBcTransaction {
 	crs.Add(&dom, &dummyTxid)
 	txobj.Crossref = &crs
 
-	SignToTransaction(txobj, &u1, &keypair1)
-	SignToTransaction(txobj, &u6, &keypair2)
-	SignToTransaction(txobj, &u2, &keypair1)
-	SignToTransaction(txobj, &u5, &keypair1)
-	SignToTransaction(txobj, &u4, &keypair2)
+	SignToTransaction(txobj, &u1, keypair1)
+	SignToTransaction(txobj, &u6, keypair2)
+	SignToTransaction(txobj, &u2, keypair1)
+	SignToTransaction(txobj, &u5, keypair1)
+	SignToTransaction(txobj, &u4, keypair2)
 
 	return txobj
 }
@@ -88,8 +88,8 @@ func makeFollowTXWithUtility(refTxObj *BBcTransaction) *BBcTransaction {
 
 func TestBBcLibUtilitiesTx1(t *testing.T) {
 	assetGroupID = GetIdentifierWithTimestamp("assetGroupID", defaultIDLength)
-	keypair1 = GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
-	keypair2 = GenerateKeypair(KeyTypeEcdsaSECP256k1, DefaultCompressionMode)
+	keypair1, _ = GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
+	keypair2, _ = GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 
 	t.Run("MakeTransaction and events", func(t *testing.T) {
 		txobj = MakeTransaction(3, 0, true)
@@ -105,8 +105,8 @@ func TestBBcLibUtilitiesTx1(t *testing.T) {
 		txobj.Witness.AddWitness(&u1)
 		txobj.Witness.AddWitness(&u2)
 
-		SignToTransaction(txobj, &u1, &keypair1)
-		SignToTransaction(txobj, &u2, &keypair2)
+		SignToTransaction(txobj, &u1, keypair1)
+		SignToTransaction(txobj, &u2, keypair2)
 
 		/*
 		t.Log("-------------transaction--------------")
@@ -149,8 +149,8 @@ func TestBBcLibUtilitiesTx2(t *testing.T) {
 		dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
 		crs.Add(&dom, &dummyTxid)
 
-		SignToTransaction(txobj2, &u1, &keypair1)
-		SignToTransaction(txobj2, &u2, &keypair2)
+		SignToTransaction(txobj2, &u1, keypair1)
+		SignToTransaction(txobj2, &u2, keypair2)
 
 		/*
 		t.Log("-------------transaction--------------")
@@ -198,8 +198,8 @@ func TestBBcLibUtilitiesTx3(t *testing.T) {
 		txobj3.Witness.AddWitness(&u1)
 		txobj3.Witness.AddWitness(&u2)
 
-		SignToTransaction(txobj3, &u1, &keypair1)
-		SignToTransaction(txobj3, &u2, &keypair2)
+		SignToTransaction(txobj3, &u1, keypair1)
+		SignToTransaction(txobj3, &u2, keypair2)
 
 		/*
 		t.Log("-------------transaction--------------")
@@ -244,8 +244,8 @@ func TestBBcLibUtilitiesTx3(t *testing.T) {
 		txobj4.Witness.AddWitness(&u1)
 		txobj4.Witness.AddWitness(&u2)
 
-		SignToTransaction(txobj4, &u1, &keypair1)
-		SignToTransaction(txobj4, &u2, &keypair2)
+		SignToTransaction(txobj4, &u1, keypair1)
+		SignToTransaction(txobj4, &u2, keypair2)
 
 		/*
 		t.Log("-------------transaction--------------")

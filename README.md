@@ -11,19 +11,16 @@ This reposigory is originally from https://github.com/quvox/bbclib-go
 
 
 ### Features
-* Support most of features of py-bbclib in https://github.com/beyond-blockchain/py-bbclib
+* Support most of the features of py-bbclib in https://github.com/beyond-blockchain/py-bbclib
     * BBc-1 version 1.5
     * transaction header version 1 and 2.
 * Go v1.10 or later
-
-### dependencies
-* https://github.com/beyond-blockchain/libbbcsig
 
 ## Usage
 
 import "github.com/beyond-blockchain/bbclib-go"
 
-An example source code is in example/src/main/.
+An example source code is in example/.
 
 
 ## Install (step by step)
@@ -32,52 +29,4 @@ An example source code is in example/src/main/.
 go get -u github.com/beyond-blockchain/bbclib-go
 ```
 
-Building an external library is also required.
-When "go get" is done, you will find github.com/beyond-blockchain/bbclib-go/ directory in ${GOPATH}/src.
-Then, execute the following commands:
-```
-cd ${GOPATH}/src/github.com/beyond-blockchain/bbclib-go
-bash prepare.sh
-```
-
-If you want to use this module in an AWS environment (EC2 or Lambda), do as follows:
-```
-cd ${GOPATH}/github.com/beyond-blockchain/bbclib-go
-bash prepare.sh aws
-```
-The preparation script (prepare.sh) produces libbbcsig.a, which is a static link library for signing/verifying a transaction.
-Building libbbcsig.a takes long time, so be patient.
-
-After finishing the compilation, you are ready for "go install".
-
-```
-go install github.com/beyond-blockchain/bbclib-go
-```
-
-NOTE: [example/](./example) directory includes a sample code for this module. There are a document and a preparation script. 
-
-## Install (easy)
-
-1. Put prepare_bbclib.sh in this repository in your development tree.
-2. Make sure that you set GOPATH env
-3. execute prepare_bbclib.sh as follows:
-```
-bash prepare_bbclib.sh
-```
-
-See example/src/main/ directory for example.
-
-## Prepare for development (module itself)
-
-For linux/mac
-```
-sh prepare.sh
-```
-
-For Amazon Lambda, you need docker and do the following:
-```
-sh prepare.sh aws
-```
-
-After finishing prepare.sh script, you will find libbbcsig.a and libbbcsig.h, which are used by keypair.go for signing/verifying.
-
+NOTE: [example/](./example) directory includes a sample code for this module.

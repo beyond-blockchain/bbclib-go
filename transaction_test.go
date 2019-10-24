@@ -44,7 +44,7 @@ var (
 func makeBaseTx(idconf BBcIdConfig) BBcTransaction {
 	txobj := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
 	txobj.SetIdLengthConf(&idconf)
-	keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
+	keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 	evt := BBcEvent{}
 	txobj.AddEvent(&evt)
 	crs := BBcCrossRef{}
@@ -72,13 +72,13 @@ func makeBaseTx(idconf BBcIdConfig) BBcTransaction {
 
 	wit.AddWitness(&txtest_u1)
 	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(&keypair, txtest_u1, false)
+	_ = txobj.SignAndAdd(keypair, txtest_u1, false)
 
 	return txobj
 }
 
 func makeFollowTX(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcTransaction {
-	keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
+	keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 	txobj := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
 	txobj.SetIdLengthConf(&idconf)
 	rtn := BBcRelation{}
@@ -121,32 +121,32 @@ func makeFollowTX(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcTransaction {
 
 	// old version (v1.4.2 or earlier)
 	sig := BBcSignature{}
-	sig.SetPublicKeyByKeypair(&keypair)
-	signature, _ := txobj.Sign(&keypair)
+	sig.SetPublicKeyByKeypair(keypair)
+	signature, _ := txobj.Sign(keypair)
 	sig.SetSignature(&signature)
 	ref.AddSignature(&txtest_u1, &sig)
 
 	// old version (v1.4.2 or earlier)
 	sig6 := BBcSignature{}
-	sig6.SetPublicKeyByKeypair(&keypair)
-	signature6, _ := txobj.Sign(&keypair)
+	sig6.SetPublicKeyByKeypair(keypair)
+	signature6, _ := txobj.Sign(keypair)
 	sig6.SetSignature(&signature6)
 	txobj.AddSignature(&txtest_u6, &sig6)
 
 	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(&keypair, txtest_u2, false)
+	_ = txobj.SignAndAdd(keypair, txtest_u2, false)
 
 	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(&keypair, txtest_u5, false)
+	_ = txobj.SignAndAdd(keypair, txtest_u5, false)
 
 	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(&keypair, txtest_u4, false)
+	_ = txobj.SignAndAdd(keypair, txtest_u4, false)
 
 	return txobj
 }
 
 func makeFollowTXWithAssetRaw(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcTransaction {
-	keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
+	keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 	txobj := BBcTransaction{Version: 2, Timestamp: time.Now().UnixNano()}
 	txobj.SetIdLengthConf(&idconf)
 	rtn := BBcRelation{}
@@ -189,32 +189,32 @@ func makeFollowTXWithAssetRaw(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcT
 
 	// old version (v1.4.2 or earlier)
 	sig := BBcSignature{}
-	sig.SetPublicKeyByKeypair(&keypair)
-	signature, _ := txobj.Sign(&keypair)
+	sig.SetPublicKeyByKeypair(keypair)
+	signature, _ := txobj.Sign(keypair)
 	sig.SetSignature(&signature)
 	ref.AddSignature(&txtest_u1, &sig)
 
 	// old version (v1.4.2 or earlier)
 	sig6 := BBcSignature{}
-	sig6.SetPublicKeyByKeypair(&keypair)
-	signature6, _ := txobj.Sign(&keypair)
+	sig6.SetPublicKeyByKeypair(keypair)
+	signature6, _ := txobj.Sign(keypair)
 	sig6.SetSignature(&signature6)
 	txobj.AddSignature(&txtest_u6, &sig6)
 
 	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(&keypair, txtest_u2, false)
+	_ = txobj.SignAndAdd(keypair, txtest_u2, false)
 
 	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(&keypair, txtest_u5, false)
+	_ = txobj.SignAndAdd(keypair, txtest_u5, false)
 
 	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(&keypair, txtest_u4, false)
+	_ = txobj.SignAndAdd(keypair, txtest_u4, false)
 
 	return txobj
 }
 
 func makeFollowTXWithAssetHash(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcTransaction {
-	keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
+	keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 	txobj := BBcTransaction{Version: 2, Timestamp: time.Now().UnixNano()}
 	txobj.SetIdLengthConf(&idconf)
 	rtn := BBcRelation{}
@@ -259,26 +259,26 @@ func makeFollowTXWithAssetHash(idconf BBcIdConfig, refTxObj *BBcTransaction) BBc
 
 	// old version (v1.4.2 or earlier)
 	sig := BBcSignature{}
-	sig.SetPublicKeyByKeypair(&keypair)
-	signature, _ := txobj.Sign(&keypair)
+	sig.SetPublicKeyByKeypair(keypair)
+	signature, _ := txobj.Sign(keypair)
 	sig.SetSignature(&signature)
 	ref.AddSignature(&txtest_u1, &sig)
 
 	// old version (v1.4.2 or earlier)
 	sig6 := BBcSignature{}
-	sig6.SetPublicKeyByKeypair(&keypair)
-	signature6, _ := txobj.Sign(&keypair)
+	sig6.SetPublicKeyByKeypair(keypair)
+	signature6, _ := txobj.Sign(keypair)
 	sig6.SetSignature(&signature6)
 	txobj.AddSignature(&txtest_u6, &sig6)
 
 	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(&keypair, txtest_u2, false)
+	_ = txobj.SignAndAdd(keypair, txtest_u2, false)
 
 	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(&keypair, txtest_u5, false)
+	_ = txobj.SignAndAdd(keypair, txtest_u5, false)
 
 	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(&keypair, txtest_u4, false)
+	_ = txobj.SignAndAdd(keypair, txtest_u4, false)
 
 	return txobj
 }
@@ -286,7 +286,7 @@ func makeFollowTXWithAssetHash(idconf BBcIdConfig, refTxObj *BBcTransaction) BBc
 
 func TestTransactionPackUnpackSimple(t *testing.T) {
 	t.Run("simple creation (with relation)", func(t *testing.T) {
-		keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
+		keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 		txobj := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
 		txobj.SetIdLengthConf(&idLengthConfig)
 		rtn := BBcRelation{}
@@ -323,13 +323,13 @@ func TestTransactionPackUnpackSimple(t *testing.T) {
 
 		// old version (v1.4.2 or earlier)
 		sig := BBcSignature{}
-		sig.SetPublicKeyByKeypair(&keypair)
-		signature, _ := txobj.Sign(&keypair)
+		sig.SetPublicKeyByKeypair(keypair)
+		signature, _ := txobj.Sign(keypair)
 		sig.SetSignature(&signature)
 		wit.AddSignature(&txtest_u1, &sig)
 
 		// new version (supported by v1.4.3 or later)
-		_ = txobj.SignAndAdd(&keypair, txtest_u2, false)
+		_ = txobj.SignAndAdd(keypair, txtest_u2, false)
 
 		/*
 		t.Log("---------------transaction-----------------")
@@ -400,7 +400,7 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 	})
 
 	t.Run("simple creation (with event/reference)", func(t *testing.T) {
-		keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
+		keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 		txobj3 := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
 		txobj3.SetIdLengthConf(&idLengthConfig)
 		evt := BBcEvent{}
@@ -428,8 +428,8 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		crs.Add(&dom, &dummyTxid)
 
 		sig := BBcSignature{}
-		sig.SetPublicKeyByKeypair(&keypair)
-		signature, err := txobj3.Sign(&keypair)
+		sig.SetPublicKeyByKeypair(keypair)
+		signature, err := txobj3.Sign(keypair)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -437,8 +437,8 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		ref.AddSignature(&txtest_u1, &sig)
 
 		sig2 := BBcSignature{}
-		sig2.SetPublicKeyByKeypair(&keypair)
-		signature2, err := txobj3.Sign(&keypair)
+		sig2.SetPublicKeyByKeypair(keypair)
+		signature2, err := txobj3.Sign(keypair)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -446,8 +446,8 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		ref.AddSignature(&txtest_u2, &sig2)
 
 		sig3 := BBcSignature{}
-		sig3.SetPublicKeyByKeypair(&keypair)
-		signature3, err := txobj3.Sign(&keypair)
+		sig3.SetPublicKeyByKeypair(keypair)
+		signature3, err := txobj3.Sign(keypair)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -490,7 +490,7 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 	})
 
 	t.Run("pack/unpack between creating a tx and signing to it", func(t *testing.T) {
-		keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
+		keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 		txobj4 := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
 		txobj4.SetIdLengthConf(&idLengthConfig)
 		rtn := BBcRelation{}
@@ -563,8 +563,8 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 
 		// old version (v1.4.2 or earlier)
 		sig := BBcSignature{}
-		sig.SetPublicKeyByKeypair(&keypair)
-		signature, err := obj4.Sign(&keypair)
+		sig.SetPublicKeyByKeypair(keypair)
+		signature, err := obj4.Sign(keypair)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -574,8 +574,8 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 
 		// old version (v1.4.2 or earlier)
 		sig6 := BBcSignature{}
-		sig6.SetPublicKeyByKeypair(&keypair)
-		signature6, err := obj4.Sign(&keypair)
+		sig6.SetPublicKeyByKeypair(keypair)
+		signature6, err := obj4.Sign(keypair)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -585,8 +585,8 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 
 		// old version only (v1.4.2 or earlier) Reference cannot use new version!!!
 		sig2 := BBcSignature{}
-		sig2.SetPublicKeyByKeypair(&keypair)
-		signature2, err := obj4.Sign(&keypair)
+		sig2.SetPublicKeyByKeypair(keypair)
+		signature2, err := obj4.Sign(keypair)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -595,13 +595,13 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		ref.AddSignature(&txtest_u2, &sig2)
 
 		// new version (supported by v1.4.3 or later)
-		_ = txobj4.SignAndAdd(&keypair, txtest_u5, false)
-		_ = obj4.SignAndAdd(&keypair, txtest_u5, false)
+		_ = txobj4.SignAndAdd(keypair, txtest_u5, false)
+		_ = obj4.SignAndAdd(keypair, txtest_u5, false)
 
 		// old version only (v1.4.2 or earlier) Reference cannot use new version!!!
 		sig4 := BBcSignature{}
-		sig4.SetPublicKeyByKeypair(&keypair)
-		signature3, err := obj4.Sign(&keypair)
+		sig4.SetPublicKeyByKeypair(keypair)
+		signature3, err := obj4.Sign(keypair)
 		if err != nil {
 			t.Fatal(err)
 		}

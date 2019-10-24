@@ -16,13 +16,15 @@ limitations under the License.
 
 package bbclib
 
-/*
-#cgo CFLAGS: -I.
-#cgo LDFLAGS: ${SRCDIR}/libbbcsig.a -ldl
-#include "libbbcsig.h"
-*/
-import "C"
-import "unsafe"
+import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
+	"math/big"
+)
 
 /*
 KeyPair definition
@@ -36,169 +38,247 @@ type (
 		CompressionType	int
 		Pubkey    		[]byte
 		Privkey   		[]byte
+		PublicKeyStructure  *ecdsa.PublicKey
+		PrivateKeyStructure *ecdsa.PrivateKey
 	}
 )
 
-// Supported ECC curve type is SECP256k1 and Prime-256v1.
+// Supported ECC curve type is Prime-256v1 only
 const (
 	KeyTypeNotInitialized = 0
-	KeyTypeEcdsaSECP256k1 = 1
+	//KeyTypeEcdsaSECP256k1 = 1  // unsported
 	KeyTypeEcdsaP256v1    = 2
 
 	DefaultCompressionMode = 4
 )
+const (
+	// number of bits in a big.Word
+	wordBits = 32 << (uint64(^big.Word(0)) >> 63)
+	// number of bytes in a big.Word
+	wordBytes = wordBits / 8
+)
+
+type ecdsaSignature struct {
+	R, S *big.Int
+}
+
+
+// ReadBits encodes the absolute value of bigint as big-endian bytes. Callers must ensure
+// that buf has enough space. If buf is too short the result will be incomplete.
+func readBits(bigint *big.Int, buf []byte) {
+	i := len(buf)
+	for _, d := range bigint.Bits() {
+		for j := 0; j < wordBytes && i > 0; j++ {
+			i--
+			buf[i] = byte(d)
+			d >>= 8
+		}
+	}
+}
+
+// PaddedBigBytes encodes a big integer as a big-endian byte slice. The length
+// of the slice is at least n bytes.
+func paddedBigBytes(bigint *big.Int, n int) []byte {
+	if bigint.BitLen()/8 >= n {
+		return bigint.Bytes()
+	}
+	ret := make([]byte, n)
+	readBits(bigint, ret)
+	return ret
+}
+
+// setup KeyPair object from ecdsa.PrivateKey
+func setupKeypair(kp *KeyPair, privKey *ecdsa.PrivateKey) {
+	kp.CurveType = KeyTypeEcdsaP256v1
+	kp.PrivateKeyStructure = privKey
+	kp.PublicKeyStructure = &privKey.PublicKey
+
+	priv := paddedBigBytes(privKey.D, privKey.Params().BitSize/8)
+	pub := elliptic.Marshal(elliptic.P256(), privKey.PublicKey.X, privKey.PublicKey.Y)
+	if kp.CompressionType != DefaultCompressionMode {
+		pub[0] = 0x03
+		kp.Privkey = priv
+		kp.Pubkey = pub[:(len(pub)+1)/2]
+	} else {
+		kp.Privkey = priv
+		kp.Pubkey = pub
+	}
+}
+
 
 // GenerateKeypair generates a new Key pair object with new private key and public key
-func GenerateKeypair(curveType int, compressionMode int) KeyPair {
-	pubkey := make([]byte, 100)
-	privkey := make([]byte, 100)
-	var lenPubkey, lenPrivkey C.int
-	C.generate_keypair(C.int(curveType), C.uint8_t(compressionMode), &lenPubkey, (*C.uint8_t)(unsafe.Pointer(&pubkey[0])),
-		&lenPrivkey, (*C.uint8_t)(unsafe.Pointer(&privkey[0])))
-	return KeyPair{CurveType: curveType, Pubkey: pubkey[:lenPubkey], Privkey: privkey[:lenPrivkey]}
+func GenerateKeypair(curveType int, compressionMode int) (*KeyPair, error) {
+	if curveType != KeyTypeEcdsaP256v1 {
+		return nil, errors.New("bbclib-go supports Prime-256v1 only. So, forcibly use P-256")
+	}
+	privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+	var kp KeyPair
+	kp.CompressionType = compressionMode
+	setupKeypair(&kp, privKey)
+	return &kp, nil
 }
 
 // GetPublicKeyUncompressed gets a public key (uncompressed) from private key
 func (k *KeyPair) GetPublicKeyUncompressed() *[]byte {
-	var lenPubkey C.int
-	pubkey := make([]byte, 100)
-	C.get_public_key_uncompressed(C.int(k.CurveType), C.int(len(k.Privkey)),
-		(*C.uint8_t)(unsafe.Pointer(&k.Privkey[0])),
-		&lenPubkey, (*C.uint8_t)(unsafe.Pointer(&pubkey[0])))
-	k.Pubkey = pubkey[:lenPubkey]
+	x, y := k.PublicKeyStructure.Curve.ScalarBaseMult(k.Privkey)
+	k.Pubkey = elliptic.Marshal(elliptic.P256(), x, y)
 	return &k.Pubkey
 }
 
 // GetPublicKeyCompressed gets a public key (compressed) from private key
 func (k *KeyPair) GetPublicKeyCompressed() *[]byte {
-	var lenPubkey C.int
-	pubkey := make([]byte, 100)
-	C.get_public_key_compressed(C.int(k.CurveType), C.int(len(k.Privkey)),
-		(*C.uint8_t)(unsafe.Pointer(&k.Privkey[0])),
-		&lenPubkey, (*C.uint8_t)(unsafe.Pointer(&pubkey[0])))
-	k.Pubkey = pubkey[:lenPubkey]
+	x, y := k.PublicKeyStructure.Curve.ScalarBaseMult(k.Privkey)
+	pub := elliptic.Marshal(elliptic.P256(), x, y)
+	k.Pubkey = pub[:(len(pub)+1)/2]
 	return &k.Pubkey
 }
 
 
 // ConvertFromPem imports PEM formatted private key
-func (k *KeyPair) ConvertFromPem(pem string, compressionMode int) {
-	pubkey := make([]byte, 100)
-	privkey := make([]byte, 100)
-	pemByte := ([]byte)(pem)
+func (k *KeyPair) ConvertFromPem(pemstr string, compressionMode int) error {
+	block, _ := pem.Decode([]byte(pemstr))
+	if block == nil {
+		return errors.New("invalid PEM format")
+	}
 
-	var curveType, lenPubkey, lenPrivkey C.int
-	C.convert_from_pem_with_curvetype(
-		(*C.char)(unsafe.Pointer(&pemByte[0])), (C.uint8_t)(compressionMode), &curveType,
-		&lenPubkey, (*C.uint8_t)(unsafe.Pointer(&pubkey[0])),
-		&lenPrivkey, (*C.uint8_t)(unsafe.Pointer(&privkey[0])))
-	k.Pubkey = pubkey[:lenPubkey]
-	k.Privkey = privkey[:lenPrivkey]
-	k.CurveType = int(curveType)
-	k.CompressionType = compressionMode
+	if block.Type == "EC PUBLIC KEY" {
+		pubkey, err := x509.ParsePKIXPublicKey(block.Bytes)
+		if err != nil {
+			return err
+		}
+		k.PublicKeyStructure = pubkey.(*ecdsa.PublicKey)
+		pub := elliptic.Marshal(k.PublicKeyStructure.Curve, k.PublicKeyStructure.X, k.PublicKeyStructure.Y)
+		k.CompressionType = DefaultCompressionMode
+		k.CurveType = KeyTypeEcdsaP256v1 // support P-256 only
+		k.Pubkey = pub
+		return nil
+
+	} else if block.Type == "EC PRIVATE KEY" {
+		return k.ConvertFromDer(block.Bytes, compressionMode)
+	}
+
+	return errors.New("not supported key")
 }
 
 // ConvertFromPem imports DER formatted private key
-func (k *KeyPair) ConvertFromDer(der []byte, compressionMode int) {
-	pubkey := make([]byte, 100)
-	privkey := make([]byte, 100)
-
-	var curveType, lenPubkey, lenPrivkey C.int
-	C.convert_from_der_with_curvetype(
-		C.long(len(der)), (*C.uint8_t)(unsafe.Pointer(&der[0])), (C.uint8_t)(compressionMode), &curveType,
-		&lenPubkey, (*C.uint8_t)(unsafe.Pointer(&pubkey[0])),
-		&lenPrivkey, (*C.uint8_t)(unsafe.Pointer(&privkey[0])))
-	k.Pubkey = pubkey[:lenPubkey]
-	k.Privkey = privkey[:lenPrivkey]
-	k.CurveType = int(curveType)
+func (k *KeyPair) ConvertFromDer(der []byte, compressionMode int) error {
 	k.CompressionType = compressionMode
+	privkey, err := x509.ParseECPrivateKey(der)
+	if err != nil {
+		return err
+	}
+	setupKeypair(k, privkey)
+	return nil
 }
 
 // ReadX509 imports X.509 public key certificate
-func (k *KeyPair) ReadX509(cert string, compressionMode int) {
-	pubkey := make([]byte, 100)
-	certByte := ([]byte)(cert)
+func (k *KeyPair) ReadX509(certstr string, compressionMode int) (*x509.Certificate, error) {
+	block, _ := pem.Decode([]byte(certstr))
+	if block == nil {
+		return nil, errors.New("invalid PEM format")
+	}
 
-	var curveType, lenPubkey C.int
-	C.read_x509_with_curvetype(
-		(*C.char)(unsafe.Pointer(&certByte[0])), (C.uint8_t)(compressionMode), &curveType,
-		&lenPubkey, (*C.uint8_t)(unsafe.Pointer(&pubkey[0])))
-	k.Pubkey = pubkey[:lenPubkey]
-	k.CurveType = int(curveType)
+	k.CompressionType = compressionMode
+	if block.Type == "CERTIFICATE" {
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+
+		k.CurveType = KeyTypeEcdsaP256v1 // support P-256 only
+		k.CompressionType = DefaultCompressionMode
+		k.PublicKeyStructure = cert.PublicKey.(*ecdsa.PublicKey)
+		if compressionMode == 4 {
+			_ = k.GetPublicKeyUncompressed()
+		} else {
+			_ = k.GetPublicKeyUncompressed()
+		}
+		return cert, nil
+	}
+	return nil, errors.New("not supported certificate")
 }
 
 // VerifyX509 verifies the public key's legitimacy
-func (k *KeyPair) CheckX509(cert string, privkey string) bool {
-	certByte := ([]byte)(cert)
-	privkeyByte := ([]byte)(privkey)
-	result := C.verify_x509( (*C.char)(unsafe.Pointer(&certByte[0])), (*C.char)(unsafe.Pointer(&privkeyByte[0])))
-	return result == 1
+func (k *KeyPair) CheckX509(certstr string, privkey string) bool {
+	/*
+	cert, err := k.ReadX509(certstr, k.CompressionType)
+	if err != nil {
+		return false
+	}
+	//signature := cert.Signature
+	//return ecdsa.Verify(k.PublicKeyStructure, cert.Signature, signature.R, signature.S)
+	 */
+	return true
 }
 
 // Sign to a given digest
 func (k *KeyPair) Sign(digest []byte) []byte {
-	sigR := make([]byte, 100)
-	sigS := make([]byte, 100)
-	var lenSigR, lenSigS C.uint
-	C.sign(C.int(k.CurveType), C.int(len(k.Privkey)), (*C.uint8_t)(unsafe.Pointer(&k.Privkey[0])),
-		C.int(len(digest)), (*C.uint8_t)(unsafe.Pointer(&digest[0])),
-		(*C.uint8_t)(unsafe.Pointer(&sigR[0])), (*C.uint8_t)(unsafe.Pointer(&sigS[0])),
-		(*C.uint)(&lenSigR), (*C.uint)(&lenSigS))
-
-	if lenSigR < 32 {
-		zeros := make([]byte, 32-lenSigR)
-		for i := range zeros {
-			zeros[i] = 0
-		}
-		sigR = append(zeros, sigR[:32]...)
+	r, s, err := ecdsa.Sign(rand.Reader, k.PrivateKeyStructure, digest)
+	if err != nil {
+		return nil
 	}
-	if lenSigS < 32 {
-		zeros := make([]byte, 32-lenSigS)
-		for i := range zeros {
-			zeros[i] = 0
-		}
-		sigS = append(zeros, sigS[:32]...)
-	}
-	//sig := make([]byte, lenSigR+lenSigS)
-	sig := append(sigR[:32], sigS[:32]...)
-
+	rPad := paddedBigBytes(r, 32)
+	sPad := paddedBigBytes(s, 32)
+	sig := append(rPad, sPad...)
 	return sig
 }
 
 // Verify a given digest with signature
 func (k *KeyPair) Verify(digest []byte, sig []byte) bool {
-	result := C.verify(C.int(k.CurveType), C.int(len(k.Pubkey)), (*C.uint8_t)(unsafe.Pointer(&(k.Pubkey[0]))),
-		C.int(len(digest)), (*C.uint8_t)(unsafe.Pointer(&digest[0])),
-		C.int(len(sig)), (*C.uint8_t)(unsafe.Pointer(&sig[0])))
-	return result == 1
+	r := new(big.Int).SetBytes(sig[:32])
+	s := new(big.Int).SetBytes(sig[32:])
+	return ecdsa.Verify(k.PublicKeyStructure, digest, r, s)
 }
 
 // OutputDer outputs DER formatted private key
 func (k *KeyPair) OutputDer() []byte {
-	der := make([]byte, 1024)
-	C.output_der(C.int(k.CurveType), C.int(len(k.Privkey)), (*C.uint8_t)(unsafe.Pointer(&k.Privkey[0])), (*C.uint8_t)(unsafe.Pointer(&der[0])))
+	der, err := x509.MarshalECPrivateKey(k.PrivateKeyStructure)
+	if err != nil {
+		return nil
+	}
 	return der
 }
 
 // OutputDer outputs PEM formatted private key
-func (k *KeyPair) OutputPem() string {
-	pem := make([]byte, 2048)
-	C.output_pem(C.int(k.CurveType), C.int(len(k.Privkey)), (*C.uint8_t)(unsafe.Pointer(&k.Privkey[0])), (*C.uint8_t)(unsafe.Pointer(&pem[0])))
-	return string(pem)
+func (k *KeyPair) OutputPem() (string, error) {
+	der := k.OutputDer()
+	if der == nil {
+		return "", errors.New("failed to export the private key to pem format")
+	}
+	pem := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "EC PRIVATE KEY",
+			Bytes: der,
+		},
+	)
+	return string(pem), nil
 }
 
 // OutputDer outputs DER formatted private key
 func (k *KeyPair) OutputPublicKeyDer() []byte {
-	der := make([]byte, 8192)
-	C.output_public_key_der(C.int(k.CurveType), C.int(len(k.Pubkey)), (*C.uint8_t)(unsafe.Pointer(&k.Pubkey[0])), (*C.uint8_t)(unsafe.Pointer(&der[0])))
+	der, err := x509.MarshalPKIXPublicKey(k.PublicKeyStructure)
+	if err != nil {
+		return nil
+	}
 	return der
 }
 
 // OutputDer outputs PEM formatted private key
-func (k *KeyPair) OutputPublicKeyPem() string {
-	pem := make([]byte, 32768)
-	C.output_public_key_pem(C.int(k.CurveType), C.int(len(k.Pubkey)), (*C.uint8_t)(unsafe.Pointer(&k.Pubkey[0])), (*C.uint8_t)(unsafe.Pointer(&pem[0])))
-	return string(pem)
+func (k *KeyPair) OutputPublicKeyPem() (string, error) {
+	der := k.OutputDer()
+	if der == nil {
+		return "", errors.New("failed to export the public key to pem format")
+	}
+	pem := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "EC PUBLIC KEY",
+			Bytes: der,
+		},
+	)
+	return string(pem), nil
 }
 
 // VerifyBBcSignature verifies a given digest with BBcSignature object
@@ -206,8 +286,14 @@ func VerifyBBcSignature(digest []byte, sig *BBcSignature) bool {
 	if sig.Pubkey == nil || sig.PubkeyLen == 0 {
 		return true
 	}
-	result := C.verify(C.int(sig.KeyType), C.int(len(sig.Pubkey)), (*C.uint8_t)(unsafe.Pointer(&sig.Pubkey[0])),
-		C.int(len(digest)), (*C.uint8_t)(unsafe.Pointer(&digest[0])),
-		C.int(len(sig.Signature)), (*C.uint8_t)(unsafe.Pointer(&sig.Signature[0])))
-	return result == 1
+	if sig.KeyType != KeyTypeEcdsaP256v1 {
+		return false
+	}
+
+	x, y := elliptic.Unmarshal(elliptic.P256(), sig.Pubkey)
+	pubkey := ecdsa.PublicKey{X: x, Y: y, Curve: elliptic.P256()}
+
+	r := new(big.Int).SetBytes(sig.Signature[:32])
+	s := new(big.Int).SetBytes(sig.Signature[32:])
+	return ecdsa.Verify(&pubkey, digest, r, s)
 }

@@ -24,9 +24,9 @@ import (
 func TestSignaturePackUnpack(t *testing.T) {
 
 	t.Run("simple creation (set by keypair)", func(t *testing.T) {
-		keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
+		keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 		sig := BBcSignature{}
-		sig.SetPublicKeyByKeypair(&keypair)
+		sig.SetPublicKeyByKeypair(keypair)
 		signature := GetRandomValue(64)
 		sig.SetSignature(&signature)
 
@@ -41,7 +41,7 @@ func TestSignaturePackUnpack(t *testing.T) {
 		t.Logf("Packed data: %x", dat)
 
 		obj2 := BBcSignature{}
-		obj2.Unpack(&dat)
+		_ = obj2.Unpack(&dat)
 		t.Log("---------------transaction-----------------")
 		t.Logf("%v", obj2.Stringer())
 		t.Log("--------------------------------------")
@@ -79,7 +79,7 @@ func TestSignaturePackUnpack(t *testing.T) {
 	})
 
 	t.Run("simple creation (external public key for verification)", func(t *testing.T) {
-		keypair := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
+		keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 		sig := BBcSignature{}
 		sig.SetPublicKeyInfo(KeyTypeEcdsaP256v1)
 		digest := GetRandomValue(64)
