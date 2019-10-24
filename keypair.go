@@ -268,7 +268,7 @@ func (k *KeyPair) OutputPublicKeyDer() []byte {
 
 // OutputDer outputs PEM formatted private key
 func (k *KeyPair) OutputPublicKeyPem() (string, error) {
-	der := k.OutputDer()
+	der := k.OutputPublicKeyDer()
 	if der == nil {
 		return "", errors.New("failed to export the public key to pem format")
 	}
