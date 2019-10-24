@@ -1,6 +1,11 @@
 CHANGELOG
 ====
 
+## v1.5.1
+* remove dependency on libbcsig
+  - all key manipulation and sign/verify functions become golang native
+* unsupport ECC NIST SECP-256 curve
+
 ## v1.5.0
 * add BBcAssetRaw and BBcAssetHash classes
 * the version in BBcTransaction header is 2

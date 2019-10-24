@@ -1,4 +1,4 @@
-package example
+package main
 
 import (
 	"bytes"
@@ -14,8 +14,8 @@ func main() {
 	assetGroupID := bbclib.GetIdentifierWithTimestamp("assetGroupID", 32)
 	u1 := bbclib.GetIdentifierWithTimestamp("user1", 32)
 	u2 := bbclib.GetIdentifierWithTimestamp("user2", 32)
-	keypair1 := bbclib.GenerateKeypair(bbclib.KeyTypeEcdsaP256v1, 4)
-	keypair2 := bbclib.GenerateKeypair(bbclib.KeyTypeEcdsaSECP256k1, 4)
+	keypair1, _ := bbclib.GenerateKeypair(bbclib.KeyTypeEcdsaP256v1, 4)
+	keypair2, _ := bbclib.GenerateKeypair(bbclib.KeyTypeEcdsaSECP256k1, 4)
 
 	txobj := bbclib.MakeTransaction(3, 0, true)
 	bbclib.AddEventAssetBodyString(txobj, 0, &assetGroupID, &u1, "teststring!!!!!")
@@ -30,8 +30,8 @@ func main() {
 	txobj.Witness.AddWitness(&u1)
 	txobj.Witness.AddWitness(&u2)
 
-	bbclib.SignToTransaction(txobj, &u1, &keypair1)
-	bbclib.SignToTransaction(txobj, &u2, &keypair2)
+	bbclib.SignToTransaction(txobj, &u1, keypair1)
+	bbclib.SignToTransaction(txobj, &u2, keypair2)
 
 	fmt.Println("-------------transaction--------------")
 	fmt.Printf("%v", txobj.Stringer())

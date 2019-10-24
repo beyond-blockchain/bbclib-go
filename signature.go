@@ -16,7 +16,6 @@ limitations under the License.
 
 package bbclib
 
-import "C"
 import (
 	"bytes"
 	"encoding/binary"
