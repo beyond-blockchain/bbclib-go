@@ -15,7 +15,7 @@ func main() {
 	u1 := bbclib.GetIdentifierWithTimestamp("user1", 32)
 	u2 := bbclib.GetIdentifierWithTimestamp("user2", 32)
 	keypair1, _ := bbclib.GenerateKeypair(bbclib.KeyTypeEcdsaP256v1, 4)
-	keypair2, _ := bbclib.GenerateKeypair(bbclib.KeyTypeEcdsaSECP256k1, 4)
+	keypair2, _ := bbclib.GenerateKeypair(bbclib.KeyTypeEcdsaP256v1, 4)
 
 	txobj := bbclib.MakeTransaction(3, 0, true)
 	bbclib.AddEventAssetBodyString(txobj, 0, &assetGroupID, &u1, "teststring!!!!!")
@@ -41,12 +41,11 @@ func main() {
 	if err != nil {
 		fmt.Printf("failed to serialize transaction object (%v)", err)
 	}
-	fmt.Printf("Packed data: %x", dat)
+	fmt.Printf("Packed data: %x\n", dat)
 
 	obj2 := bbclib.BBcTransaction{}
 	obj2.Unpack(&dat)
-	obj2.Digest()
-	if result := obj2.Signatures[0].Verify(obj2.TransactionID); !result {
+	if result := obj2.Signatures[0].Verify(obj2.Digest()); !result {
 		fmt.Println("Verification failed..")
 	}
 
