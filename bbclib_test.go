@@ -3,6 +3,7 @@ package bbclib
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"testing"
 )
@@ -20,6 +21,12 @@ var (
 	assetGroupID     []byte
 	keypair1         *KeyPair
 	keypair2         *KeyPair
+
+	UserID1 = GetIdentifier("user_id1", 32)
+	UserID2 = GetIdentifier("user_id2", 32)
+	AssetGroupID1 = GetIdentifier("asset_group_id1", 32)
+	AssetGroupID2 = GetIdentifier("asset_group_id2", 32)
+	DomainID = GetIdentifier("domain_id", 32)
 )
 
 var (
@@ -83,6 +90,58 @@ func makeFollowTXWithUtility(refTxObj *BBcTransaction) *BBcTransaction {
 	SignToTransaction(txobj, &u4, keypair2)
 
 	return txobj
+}
+
+
+func makeTransactions(conf BBcIdConfig, noPubkey bool) []*BBcTransaction {
+	ConfigureIdLength(&conf)
+	transactions := make([]*BBcTransaction, 20)
+
+	txobj := MakeTransaction(1, 1, true)
+	AddRelationAssetBodyString(txobj, 0, &AssetGroupID1, &UserID1, "relation:asset_0-0")
+	AddEventAssetBodyString(txobj, 0, &AssetGroupID1, &UserID1, "event:asset_0-0")
+	txobj.Events[0].AddMandatoryApprover(&UserID1)
+	txobj.Witness.AddWitness(&UserID1)
+	txobj.SignAndAdd(keypair1, UserID1, noPubkey)
+	transactions[0] = txobj
+	//fmt.Println(txobj.Stringer())
+
+	for i:=1; i<20; i++ {
+		txobj = MakeTransaction(1, 4, true)
+		AddRelationAssetBodyString(txobj, 0, &AssetGroupID1, &UserID1, fmt.Sprintf("relation:asset_1-%d", i))
+		AddRelationPointer(txobj, 0, &transactions[i-1].TransactionID, &transactions[i-1].Relations[0].Asset.AssetID)
+		AddRelationAssetBodyString(txobj, 1, &AssetGroupID2, &UserID2, fmt.Sprintf("relation:asset_2-%d", i))
+		AddRelationPointer(txobj, 1, &transactions[i-1].TransactionID, &transactions[i-1].Relations[0].Asset.AssetID)
+		AddRelationPointer(txobj, 1, &transactions[0].TransactionID, &transactions[0].Relations[0].Asset.AssetID)
+		AddEventAssetBodyString(txobj, 0, &AssetGroupID1, &UserID2, fmt.Sprintf("event:asset_3-%d", i))
+		txobj.Events[0].AddMandatoryApprover(&UserID1)
+		AddReference(txobj, &AssetGroupID1, transactions[i-1], 0)
+
+		asid := GetIdentifier(fmt.Sprintf("asset_id_%d", i), conf.AssetIdLength)
+		AddRelationAssetRaw(txobj, 2, &AssetGroupID1, &asid, fmt.Sprintf("relation:asset_4-%d", i))
+		AddRelationPointer(txobj, 2, &transactions[0].TransactionID, &transactions[0].Relations[0].Asset.AssetID)
+		AddRelationPointer(txobj, 2, &transactions[0].TransactionID, nil)
+
+		AddRelationAssetHash(txobj, 3, &AssetGroupID2)
+		for k:=0; k<4; k++ {
+			aid := GetIdentifier(fmt.Sprintf("asset_id_%d-%d", i, k), conf.AssetIdLength)
+			txobj.Relations[3].AssetHash.AddAssetId(&aid)
+		}
+		AddRelationPointer(txobj, 3, &transactions[0].TransactionID, &transactions[0].Relations[0].Asset.AssetID)
+
+		crossref := BBcCrossRef{}
+		txobj.AddCrossRef(&crossref)
+		crossref.Add(&DomainID, &transactions[0].TransactionID)
+
+		txobj.Witness.AddWitness(&UserID1)
+		txobj.Witness.AddWitness(&UserID2)
+		txobj.SignAndAdd(keypair1, UserID1, noPubkey)
+		txobj.SignAndAdd(keypair2, UserID2, noPubkey)
+
+		transactions[i] = txobj
+		//fmt.Println(txobj.Stringer())
+	}
+	return transactions
 }
 
 
@@ -505,6 +564,301 @@ func TestBBcLibSerializeDeserializeWithLengthConf(t *testing.T) {
 		}
 		if len(txprev.Events[0].Asset.Nonce) != 10 {
 			t.Fatalf("Invalid nonce length in Asset of Event (%d != 10) idconf=%v\n", len(txprev.Events[0].Asset.AssetID), 10)
+		}
+	})
+}
+
+
+func TestBBcLibTester(t *testing.T) {
+	t.Run("same test as bbclib-tester", func(t *testing.T) {
+		idconf := BBcIdConfig{24, 8, 6, 16, 9}
+		txlist := [][]byte{}
+
+		txobjs := makeTransactions(idconf, false)
+		for i:=0; i<len(txobjs); i++ {
+			txdata, _ := Serialize(txobjs[i], FormatZlib)
+			txlist = append(txlist, txdata)
+		}
+		txobjs = makeTransactions(idconf, true)
+		for i:=0; i<len(txobjs); i++ {
+			txdata, _ := Serialize(txobjs[i], FormatZlib)
+			txlist = append(txlist, txdata)
+		}
+
+		ConfigureIdLengthAll(32)
+
+		transactions := make([]*BBcTransaction, 40)
+		txids := make([][]byte, 40)
+		for i:=0; i<len(txlist); i++ {
+			transactions[i], _ = Deserialize(txlist[i])
+			txids[i] = transactions[i].TransactionID
+		}
+
+		asgid1 := make([]byte, idconf.AssetGroupIdLength)
+		asgid2 := make([]byte, idconf.AssetGroupIdLength)
+		copy(asgid1, AssetGroupID1)
+		copy(asgid2, AssetGroupID2)
+		user1 := make([]byte, idconf.UserIdLength)
+		user2 := make([]byte, idconf.UserIdLength)
+		copy(user1, UserID1)
+		copy(user2, UserID2)
+
+		for idx:=0; idx<40; idx++ {
+			txobj := transactions[idx]
+			//fmt.Printf("idx=%d\n", idx)
+			if len(txobj.TransactionID) != idconf.TransactionIdLength {
+				panic("transaction_id length is invalid")
+			}
+			if bytes.Compare(txobj.TransactionID, txids[idx]) != 0 {
+				panic("transaction_id is invalid")
+			}
+
+			if idx % 20 == 0 {
+				if len(txobj.Relations) != 1 {
+					panic("Relations is invalid")
+				}
+				if len(txobj.Events) != 1 {
+					panic("Events is invalid")
+				}
+				if bytes.Compare(txobj.Relations[0].AssetGroupID, asgid1) != 0 {
+					panic("AssetGroupID in Relations[0] is invalid")
+				}
+				if bytes.Compare(txobj.Relations[0].Asset.UserID, user1) != 0 {
+					panic("UserID in Relations[0] is invalid")
+				}
+				if bytes.Compare(txobj.Relations[0].Asset.AssetBody, ([]byte)("relation:asset_0-0")) != 0 {
+					panic("UserID in Relations[0] is invalid")
+				}
+				if len(txobj.Relations[0].Asset.Nonce) != idconf.NonceLength {
+					panic("Nonce length in Relations[0] is invalid")
+				}
+				if bytes.Compare(txobj.Events[0].AssetGroupID, asgid1) != 0 {
+					panic("AssetGroupID in Events[0] is invalid")
+				}
+				if bytes.Compare(txobj.Events[0].Asset.UserID, user1) != 0 {
+					panic("UserID in Events[0] is invalid")
+				}
+				if bytes.Compare(txobj.Events[0].MandatoryApprovers[0], user1) != 0 {
+					panic("MandatoryApprovers in Events[0] is invalid")
+				}
+				if bytes.Compare(txobj.Events[0].Asset.AssetBody, ([]byte)("event:asset_0-0")) != 0 {
+					panic("UserID in Events[0] is invalid")
+				}
+				if len(txobj.Events[0].Asset.Nonce) != idconf.NonceLength {
+					panic("Nonce length in Events[0] is invalid")
+				}
+				if len(txobj.Witness.UserIDs) != 1 {
+					panic("Num of users in witness is invalid")
+				}
+				if len(txobj.Witness.SigIndices) != 1 {
+					panic("Num of sigindex in witness is invalid")
+				}
+
+				if len(txobj.Signatures) != 1 {
+					panic("Num of Signatures is invalid")
+				}
+				if _, errSigIdx := txobj.VerifyAll(); errSigIdx != -1 {
+					panic(fmt.Sprintf("Signature of %d is invalid", errSigIdx))
+				}
+
+			} else {
+				if len(txobj.Relations) != 4 {
+					panic("Relations is invalid")
+				}
+				if len(txobj.Events) != 1 {
+					panic("Events is invalid")
+				}
+				if len(txobj.Relations[0].Pointers) != 1 {
+					panic("Pointers of Relations[0] is invalid")
+				}
+				if len(txobj.Relations[1].Pointers) != 2 {
+					panic("Pointers of Relations[0] is invalid")
+				}
+
+				if bytes.Compare(txobj.Relations[0].AssetGroupID, asgid1) != 0 {
+					panic("AssetGroupID in Relations[0] is invalid")
+				}
+				if bytes.Compare(txobj.Relations[0].Asset.UserID, user1) != 0 {
+					panic("UserID in Relations[0] is invalid")
+				}
+				if bytes.Compare(txobj.Relations[0].Asset.AssetBody, ([]byte)(fmt.Sprintf("relation:asset_1-%d", idx%20))) != 0 {
+					panic("UserID in Relations[0] is invalid")
+				}
+				if len(txobj.Relations[0].Asset.Nonce) != idconf.NonceLength {
+					panic("Nonce length in Relations[0] is invalid")
+				}
+				if len(txobj.Relations[0].Pointers[0].TransactionID) != idconf.TransactionIdLength {
+					panic("TransactionID length in Relations[0].Pointers[0] is invalid")
+				}
+				if len(txobj.Relations[0].Pointers[0].AssetID) != idconf.AssetIdLength {
+					panic("AssetID length in Relations[0].Pointers[0] is invalid")
+				}
+				if bytes.Compare(txobj.Relations[0].Pointers[0].TransactionID, transactions[idx-1].TransactionID) != 0 {
+					panic("TransactionID in Relations[0].Pointers[0] is invalid")
+				}
+				if bytes.Compare(txobj.Relations[0].Pointers[0].AssetID, transactions[idx-1].Relations[0].Asset.AssetID) != 0 {
+					panic("AssetID in Relations[0].Pointers[0] is invalid")
+				}
+
+				if bytes.Compare(txobj.Relations[1].AssetGroupID, asgid2) != 0 {
+					panic("AssetGroupID in Relations[1] is invalid")
+				}
+				if bytes.Compare(txobj.Relations[1].Asset.UserID, user2) != 0 {
+					panic("UserID in Relations[1] is invalid")
+				}
+				if bytes.Compare(txobj.Relations[1].Asset.AssetBody, ([]byte)(fmt.Sprintf("relation:asset_2-%d", idx%20))) != 0 {
+					panic("UserID in Relations[1] is invalid")
+				}
+				if len(txobj.Relations[1].Asset.Nonce) != idconf.NonceLength {
+					panic("Nonce length in Relations[1] is invalid")
+				}
+				if len(txobj.Relations[1].Pointers[0].TransactionID) != idconf.TransactionIdLength {
+					panic("TransactionID length in Relations[1].Pointers[0] is invalid")
+				}
+				if len(txobj.Relations[1].Pointers[0].AssetID) != idconf.AssetIdLength {
+					panic("AssetID length in Relations[1].Pointers[0] is invalid")
+				}
+				if bytes.Compare(txobj.Relations[1].Pointers[0].TransactionID, transactions[idx-1].TransactionID) != 0 {
+					panic("TransactionID in Relations[1].Pointers[0] is invalid")
+				}
+				if bytes.Compare(txobj.Relations[1].Pointers[0].AssetID, transactions[idx-1].Relations[0].Asset.AssetID) != 0 {
+					panic("AssetID in Relations[1].Pointers[0] is invalid")
+				}
+
+				if bytes.Compare(txobj.Relations[2].AssetGroupID, asgid1) != 0 {
+					panic("AssetGroupID in Relations[2] is invalid")
+				}
+				if bytes.Compare(txobj.Relations[2].AssetRaw.AssetBody, ([]byte)(fmt.Sprintf("relation:asset_4-%d", idx%20))) != 0 {
+					panic("UserID in Relations[2] is invalid")
+				}
+				if len(txobj.Relations[2].Pointers[0].TransactionID) != idconf.TransactionIdLength {
+					panic("TransactionID length in Relations[0].Pointers[0] is invalid")
+				}
+				if len(txobj.Relations[2].Pointers[0].AssetID) != idconf.AssetIdLength {
+					panic("AssetID length in Relations[2].Pointers[0] is invalid")
+				}
+				if len(txobj.Relations[2].Pointers[1].TransactionID) != idconf.TransactionIdLength {
+					panic("TransactionID length in Relations[0].Pointers[1] is invalid")
+				}
+				if txobj.Relations[2].Pointers[1].AssetID != nil {
+					panic("AssetID length in Relations[2].Pointers[1] is invalid")
+				}
+
+				if bytes.Compare(txobj.Relations[3].AssetGroupID, asgid2) != 0 {
+					panic("AssetGroupID in Relations[2] is invalid")
+				}
+				if len(txobj.Relations[3].AssetHash.AssetIDs) != 4 {
+					panic("TransactionID length in Relations[0].Pointers[0] is invalid")
+				}
+				if len(txobj.Relations[3].Pointers[0].TransactionID) != idconf.TransactionIdLength {
+					panic("TransactionID length in Relations[0].Pointers[0] is invalid")
+				}
+				if len(txobj.Relations[3].Pointers[0].AssetID) != idconf.AssetIdLength {
+					panic("AssetID length in Relations[2].Pointers[0] is invalid")
+				}
+
+				if idx < 20 {
+					if bytes.Compare(txobj.Relations[1].Pointers[1].TransactionID, transactions[0].TransactionID) != 0 {
+						panic("TransactionID in Relations[0].Pointers[0] is invalid")
+					}
+					if bytes.Compare(txobj.Relations[1].Pointers[1].AssetID, transactions[0].Relations[0].Asset.AssetID) != 0 {
+						panic("AssetID in Relations[0].Pointers[0] is invalid")
+					}
+					if bytes.Compare(txobj.Relations[2].Pointers[0].TransactionID, transactions[0].TransactionID) != 0 {
+						panic("TransactionID in Relations[2].Pointers[0] is invalid")
+					}
+					if bytes.Compare(txobj.Relations[2].Pointers[0].AssetID, transactions[0].Relations[0].Asset.AssetID) != 0 {
+						panic("AssetID in Relations[2].Pointers[0] is invalid")
+					}
+					if bytes.Compare(txobj.Relations[2].Pointers[1].TransactionID, transactions[0].TransactionID) != 0 {
+						panic("TransactionID in Relations[2].Pointers[1] is invalid")
+					}
+					if bytes.Compare(txobj.Relations[3].Pointers[0].TransactionID, transactions[0].TransactionID) != 0 {
+						panic("TransactionID in Relations[3].Pointers[0] is invalid")
+					}
+					if bytes.Compare(txobj.Relations[3].Pointers[0].AssetID, transactions[0].Relations[0].Asset.AssetID) != 0 {
+						panic("AssetID in Relations[3].Pointers[0] is invalid")
+					}
+				} else {
+					if bytes.Compare(txobj.Relations[1].Pointers[1].TransactionID, transactions[20].TransactionID) != 0 {
+						panic("TransactionID in Relations[0].Pointers[0] is invalid")
+					}
+					if bytes.Compare(txobj.Relations[1].Pointers[1].AssetID, transactions[20].Relations[0].Asset.AssetID) != 0 {
+						panic("AssetID in Relations[0].Pointers[0] is invalid")
+					}
+					if bytes.Compare(txobj.Relations[2].Pointers[0].TransactionID, transactions[20].TransactionID) != 0 {
+						panic("TransactionID in Relations[2].Pointers[0] is invalid")
+					}
+					if bytes.Compare(txobj.Relations[2].Pointers[0].AssetID, transactions[20].Relations[0].Asset.AssetID) != 0 {
+						panic("AssetID in Relations[2].Pointers[0] is invalid")
+					}
+					if bytes.Compare(txobj.Relations[2].Pointers[1].TransactionID, transactions[20].TransactionID) != 0 {
+						panic("TransactionID in Relations[2].Pointers[1] is invalid")
+					}
+					if bytes.Compare(txobj.Relations[3].Pointers[0].TransactionID, transactions[20].TransactionID) != 0 {
+						panic("TransactionID in Relations[3].Pointers[0] is invalid")
+					}
+					if bytes.Compare(txobj.Relations[3].Pointers[0].AssetID, transactions[20].Relations[0].Asset.AssetID) != 0 {
+						panic("AssetID in Relations[3].Pointers[0] is invalid")
+					}
+				}
+
+				if bytes.Compare(txobj.Events[0].AssetGroupID, asgid1) != 0 {
+					panic("AssetGroupID in Events[0] is invalid")
+				}
+				if bytes.Compare(txobj.Events[0].MandatoryApprovers[0], user1) != 0 {
+					panic("MandatoryApprovers in Events[0] is invalid")
+				}
+				if bytes.Compare(txobj.Events[0].Asset.UserID, user2) != 0 {
+					panic("UserID in Events[0] is invalid")
+				}
+				if bytes.Compare(txobj.Events[0].Asset.AssetBody, ([]byte)(fmt.Sprintf("event:asset_3-%d", idx%20))) != 0 {
+					panic("UserID in Events[0] is invalid")
+				}
+				if len(txobj.Events[0].Asset.Nonce) != idconf.NonceLength {
+					panic("Nonce length in Events[0] is invalid")
+				}
+
+				if bytes.Compare(txobj.References[0].AssetGroupID, asgid1) != 0 {
+					panic("Nonce length in Events[0] is invalid")
+				}
+				if txobj.References[0].EventIndexInRef != 0 {
+					panic("EventIndexInRef in References[0] is invalid")
+				}
+				if len(txobj.References[0].SigIndices) != 1 {
+					panic("SigIndices in References[0] is invalid")
+				}
+
+				if bytes.Compare(txobj.Crossref.DomainID, DomainID) != 0 {
+					panic("DomainID in Crossref is invalid")
+				}
+				if idx < 20 {
+					if bytes.Compare(txobj.Crossref.TransactionID, txids[0]) != 0 {
+						panic("DomainID in Crossref is invalid")
+					}
+				} else {
+					if bytes.Compare(txobj.Crossref.TransactionID, txids[20]) != 0 {
+						panic("DomainID in Crossref is invalid")
+					}
+				}
+
+				if len(txobj.Witness.UserIDs) != 2 {
+					panic("Num of users in witness is invalid")
+				}
+				if len(txobj.Witness.SigIndices) != 2 {
+					panic("Num of sigindex in witness is invalid")
+				}
+
+				if len(txobj.Signatures) != 2 {
+					panic("Num of Signatures is invalid")
+				}
+				if txobj.Signatures[0].PubkeyLen == 0 && txobj.Signatures[0].Pubkey == nil {
+					//fmt.Println("no pubkey")
+				}
+				if _, errSigIdx := txobj.VerifyAll(); errSigIdx != -1 {
+					panic(fmt.Sprintf("Signature of %d is invalid", errSigIdx))
+				}
+			}
 		}
 	})
 }
