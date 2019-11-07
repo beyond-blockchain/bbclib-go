@@ -130,40 +130,87 @@ func (p *BBcTransaction) SetIdLengthConf(conf * BBcIdConfig) {
 }
 
 // AddEvent adds the BBcEvent object in the transaction object
-func (p *BBcTransaction) AddEvent(obj *BBcEvent) {
+func (p *BBcTransaction) CreateEvent(assetGroupId []byte, referenceIndices []int) *BBcEvent {
+	obj := BBcEvent{Version: p.Version, AssetGroupID: assetGroupId[:p.IdLengthConf.AssetGroupIdLength], ReferenceIndices: referenceIndices}
 	obj.SetIdLengthConf(&p.IdLengthConf)
-	p.Events = append(p.Events, obj)
+	p.Events = append(p.Events, &obj)
+	return &obj
 }
 
 // AddReference adds the BBcReference object in the transaction object
-func (p *BBcTransaction) AddReference(obj *BBcReference) {
+func (p *BBcTransaction) AddReference(assetGroupID *[]byte, refTransaction *BBcTransaction, eventIdx int) *BBcTransaction {
+	obj := BBcReference{Version: p.Version, Transaction: p}
 	obj.SetIdLengthConf(&p.IdLengthConf)
-	p.References = append(p.References, obj)
-	obj.Transaction = p
+	obj.Add(assetGroupID, refTransaction, eventIdx)
+	p.References = append(p.References, &obj)
+	return p
 }
 
 // AddRelation adds the BBcRelation object in the transaction object
-func (p *BBcTransaction) AddRelation(obj *BBcRelation) {
+func (p *BBcTransaction) CreateRelation(assetGroupId []byte) *BBcRelation {
+	obj := BBcRelation{Version: p.Version, AssetGroupID: assetGroupId[:p.IdLengthConf.AssetGroupIdLength]}
 	obj.SetIdLengthConf(&p.IdLengthConf)
 	obj.SetVersion(p.Version)
-	p.Relations = append(p.Relations, obj)
-}
-
-// AddWitness sets the BBcWitness object in the transaction object
-func (p *BBcTransaction) AddWitness(obj *BBcWitness) {
-	obj.SetIdLengthConf(&p.IdLengthConf)
-	p.Witness = obj
-	obj.Transaction = p
+	p.Relations = append(p.Relations, &obj)
+	return &obj
 }
 
 // AddCrossRef sets the BBcCrossRef object in the transaction object
-func (p *BBcTransaction) AddCrossRef(obj *BBcCrossRef) {
+func (p *BBcTransaction) AddCrossRef(domainId, transactionId *[]byte) *BBcTransaction {
+	obj := BBcCrossRef{Version: p.Version}
 	obj.SetIdLengthConf(&p.IdLengthConf)
-	p.Crossref = obj
+	obj.Add(domainId, transactionId)
+	p.Crossref = &obj
+	return p
+}
+
+// AddWitness sets the BBcWitness object in the transaction object
+func (p *BBcTransaction) AddWitness(userId *[]byte) *BBcTransaction {
+	if p.Witness == nil {
+		obj := BBcWitness{Version: p.Version}
+		obj.SetIdLengthConf(&p.IdLengthConf)
+		obj.Transaction = p
+		p.Witness = &obj
+	}
+	_ = p.Witness.AddWitness(userId)
+	return p
+}
+
+
+// AddSignature adds the BBcSignature object for the specified userID in the transaction object
+func (p *BBcTransaction) AddSignature(userId *[]byte, keyPair *KeyPair, noPubkey bool) *BBcTransaction {
+	obj := BBcSignature{Version: p.Version}
+	if noPubkey {
+		obj.SetPublicKeyInfo(uint32(keyPair.CurveType))
+	} else {
+		obj.SetPublicKeyByKeypair(keyPair)
+	}
+	signature, _ := p.Sign(keyPair)
+	obj.Signature = signature
+	obj.SignatureLen = uint32(len(signature)*8)
+
+	uid := make([]byte, int(p.IdLengthConf.UserIdLength))
+	copy(uid, *userId)
+	for i := range p.SigIndexedUsers {
+		if reflect.DeepEqual(p.SigIndexedUsers[i], uid) {
+			p.Signatures[i] = &obj
+			return p
+		}
+	}
+	if p.References != nil {
+		for i := range p.References {
+			if err := p.References[i].AddSignature(userId, &obj); err == nil {
+				return p
+			}
+		}
+	}
+	p.SigIndexedUsers = append(p.SigIndexedUsers, uid)
+	p.Signatures = append(p.Signatures, &obj)
+	return p
 }
 
 // AddSignature adds the BBcSignature object for the specified userID in the transaction object
-func (p *BBcTransaction) AddSignature(userID *[]byte, sig *BBcSignature) {
+func (p *BBcTransaction) AddSignatureObj(userID *[]byte, sig *BBcSignature) {
 	uid := make([]byte, int(p.IdLengthConf.UserIdLength))
 	copy(uid, *userID)
 	for i := range p.SigIndexedUsers {
@@ -175,6 +222,7 @@ func (p *BBcTransaction) AddSignature(userID *[]byte, sig *BBcSignature) {
 	p.SigIndexedUsers = append(p.SigIndexedUsers, uid)
 	p.Signatures = append(p.Signatures, sig)
 }
+
 
 // GetSigIndex reserves and returns the position (index) of the corespondent userID in the signature list
 func (p *BBcTransaction) GetSigIndex(userID []byte) int {
@@ -217,23 +265,6 @@ func (p *BBcTransaction) Sign(keypair *KeyPair) ([]byte, error) {
 		return nil, errors.New("fail to sign")
 	}
 	return signature, nil
-}
-
-// SignAndAdd signs to TransactionID and add BBcSignature in the transaction
-func (p *BBcTransaction) SignAndAdd(keypair *KeyPair, userID []byte, noPubkey bool) error {
-	digest := p.Digest()
-	signature := keypair.Sign(digest)
-	if signature == nil {
-		return errors.New("fail to sign")
-	}
-	idx := p.GetSigIndex(userID)
-	p.Signatures[idx].KeyType = uint32(keypair.CurveType)
-	p.Signatures[idx].SetSignature(&signature)
-	if ! noPubkey {
-		p.Signatures[idx].Pubkey = keypair.Pubkey
-		p.Signatures[idx].PubkeyLen = uint32(len(keypair.Pubkey) * 8)
-	}
-	return nil
 }
 
 // VerifyAll verifies TransactionID with all BBcSignature objects in the transaction

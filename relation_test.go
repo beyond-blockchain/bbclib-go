@@ -32,25 +32,15 @@ func TestRelationPackUnpack(t *testing.T) {
 	}
 
 	t.Run("simple creation (string asset)", func(t *testing.T) {
-		obj := BBcRelation{}
-		obj.SetIdLengthConf(&idLengthConfig)
-		ptr1 := BBcPointer{}
-		ptr2 := BBcPointer{}
-		ast := BBcAsset{}
-
 		assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
-		obj.Add(&assetgroup, &ast)
-		obj.AddPointer(&ptr1)
-		obj.AddPointer(&ptr2)
-
+		obj := BBcRelation{AssetGroupID: assetgroup}
+		obj.SetIdLengthConf(&idLengthConfig)
 		u1 := GetIdentifier("user1_789abcdef0123456789abcdef0", defaultIDLength)
-		ast.Add(&u1)
-		ast.AddBodyString("testString12345XXX")
 		txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
 		txid2 := GetIdentifierWithTimestamp("asdfauflkajethb;:a", defaultIDLength)
 		asid1 := GetIdentifier("123456789abcdef0123456789abcdef0", defaultIDLength)
-		ptr1.Add(&txid1, &asid1)
-		ptr2.Add(&txid2, nil)
+
+		obj.AddAsset(&u1, nil, "testString12345XXX").AddPointer(&txid1, &asid1).AddPointer(&txid2, nil)
 
 		t.Log("---------------Relation-----------------")
 		t.Logf("id_length_config: %v", obj.IdLengthConf)
@@ -77,16 +67,13 @@ func TestRelationPackUnpack(t *testing.T) {
 	})
 
 	t.Run("simple creation (no pointer, msgpack asset)", func(t *testing.T) {
-		ast := BBcAsset{}
-		ast.SetIdLengthConf(&idLengthConfig)
-		u1 := GetIdentifier("user1_789abcdef0123456789abcdef0", defaultIDLength)
-		ast.Add(&u1)
-		ast.AddBodyObject(map[int]string{1: "aaa", 2: "bbb", 10: "asdfasdfasf;lakj;lkj;"})
-
-		obj := BBcRelation{}
-		obj.SetIdLengthConf(&idLengthConfig)
 		assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
-		obj.Add(&assetgroup, &ast)
+		u1 := GetIdentifier("user1_789abcdef0123456789abcdef0", defaultIDLength)
+		obj := BBcRelation{AssetGroupID: assetgroup}
+		obj.SetIdLengthConf(&idLengthConfig)
+
+		obj.AddAsset(&u1, nil, map[int]string{1: "aaa", 2: "bbb", 10: "asdfasdfasf;lakj;lkj;"})
+
 		t.Log("---------------Relation-----------------")
 		t.Logf("id_length_config: %v", obj.IdLengthConf)
 		t.Logf("%v", obj.Stringer())
@@ -112,25 +99,16 @@ func TestRelationPackUnpack(t *testing.T) {
 	})
 
 	t.Run("simple creation (asset_raw)", func(t *testing.T) {
-		obj := BBcRelation{Version: 2}
-		obj.SetIdLengthConf(&idLengthConfig)
-		ptr1 := BBcPointer{}
-		ptr2 := BBcPointer{}
-		ast := BBcAssetRaw{}
-
 		assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
-		obj.AddAssetRaw(&assetgroup, &ast)
-		obj.AddPointer(&ptr1)
-		obj.AddPointer(&ptr2)
-
 		asid := GetIdentifier("user1_789abcdef0123456789abcdef0", idLengthConfig.AssetIdLength)
-		ast.AddBody(&asid, []byte("testString12345XXX"))
-
 		txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
 		txid2 := GetIdentifierWithTimestamp("asdfauflkajethb;:a", defaultIDLength)
 		asid1 := GetIdentifier("123456789abcdef0123456789abcdef0", defaultIDLength)
-		ptr1.Add(&txid1, &asid1)
-		ptr2.Add(&txid2, nil)
+
+		obj := BBcRelation{Version: 2, AssetGroupID: assetgroup}
+		obj.SetIdLengthConf(&idLengthConfig)
+
+		obj.AddPointer(&txid1, &asid1).AddPointer(&txid2, nil).AddAssetRaw(&asid, []byte("testString12345XXX"))
 
 		t.Log("---------------Relation-----------------")
 		t.Logf("id_length_config: %v", obj.IdLengthConf)
@@ -159,28 +137,21 @@ func TestRelationPackUnpack(t *testing.T) {
 		}
 	})
 
-	t.Run("simple creation (asset_raw)", func(t *testing.T) {
-		obj := BBcRelation{Version: 2}
-		obj.SetIdLengthConf(&idLengthConfig)
-		ptr1 := BBcPointer{}
-		ptr2 := BBcPointer{}
-		ast := BBcAssetHash{}
-
+	t.Run("simple creation (asset_hash)", func(t *testing.T) {
 		assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
-		obj.AddAssetHash(&assetgroup, &ast)
-		obj.AddPointer(&ptr1)
-		obj.AddPointer(&ptr2)
-
-		for i := 0; i < 10; i++ {
-			asid := GetIdentifier(fmt.Sprintf("asset_id_%d", i), idLengthConfig.AssetIdLength)
-			ast.AddAssetId(&asid)
-		}
-
 		txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
 		txid2 := GetIdentifierWithTimestamp("asdfauflkajethb;:a", defaultIDLength)
 		asid1 := GetIdentifier("123456789abcdef0123456789abcdef0", defaultIDLength)
-		ptr1.Add(&txid1, &asid1)
-		ptr2.Add(&txid2, nil)
+
+		obj := BBcRelation{Version: 2, AssetGroupID: assetgroup}
+		obj.SetIdLengthConf(&idLengthConfig)
+
+		obj.AddPointer(&txid1, &asid1).AddPointer(&txid2, nil)
+
+		for i := 0; i < 10; i++ {
+			asid := GetIdentifier(fmt.Sprintf("asset_id_%d", i), idLengthConfig.AssetIdLength)
+			obj.AddAssetHash(&asid)
+		}
 
 		t.Log("---------------Relation-----------------")
 		t.Logf("id_length_config: %v", obj.IdLengthConf)

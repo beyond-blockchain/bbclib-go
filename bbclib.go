@@ -38,7 +38,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"time"
 )
 
@@ -190,116 +189,91 @@ func MakeTransaction(eventNum, relationNum int, witness bool) *BBcTransaction {
 	txobj.Timestamp = time.Now().UnixNano() / int64(time.Microsecond)
 
 	for i := 0; i < eventNum; i++ {
-		evt := BBcEvent{}
-		txobj.AddEvent(&evt)
+		evt := BBcEvent{Version: txobj.Version}
+		evt.SetIdLengthConf(&txobj.IdLengthConf)
+		txobj.Events = append(txobj.Events, &evt)
 	}
 
 	for i := 0; i < relationNum; i++ {
-		rtn := BBcRelation{}
-		txobj.AddRelation(&rtn)
+		rtn := BBcRelation{Version: txobj.Version}
+		rtn.SetIdLengthConf(&txobj.IdLengthConf)
+		txobj.Relations = append(txobj.Relations, &rtn)
 	}
 
 	if witness {
-		wit := BBcWitness{}
-		txobj.AddWitness(&wit)
+		wit := BBcWitness{Version: txobj.Version}
+		wit.SetIdLengthConf(&txobj.IdLengthConf)
+		wit.Transaction = &txobj
+		txobj.Witness = &wit
 	}
 
 	return &txobj
 }
 
-// addInRelation is an internal function to create a BBcAsset and add it to  BBcRelation object and then a BBcTransaction object
-func addInRelation(transaction *BBcTransaction, relationIdx int, assetGroupID, userID *[]byte) {
-	ast := BBcAsset{}
-	transaction.Relations[relationIdx].Add(assetGroupID, &ast)
-	ast.Add(userID)
-}
 
 // AddRelationAssetFile sets a file digest to BBcAsset in BBcRelation and add it to a BBcTransaction object
-func AddRelationAssetFile(transaction *BBcTransaction, relationIdx int, assetGroupID, userID, assetFile *[]byte) {
+func AddRelationAssetFile(transaction *BBcTransaction, relationIdx int, assetGroupId, userId, assetFile *[]byte) {
 	if transaction == nil {
 		return
 	}
-	addInRelation(transaction, relationIdx, assetGroupID, userID)
-	if assetFile != nil {
-		transaction.Relations[relationIdx].Asset.AddFile(assetFile)
-	}
+	transaction.Relations[relationIdx].AssetGroupID = make([]byte, transaction.IdLengthConf.AssetGroupIdLength)
+	copy(transaction.Relations[relationIdx].AssetGroupID, *assetGroupId)
+	transaction.Relations[relationIdx].AddAsset(userId, assetFile, nil)
 }
 
 // AddRelationAssetBodyString sets a string in BBcAsset in BBcRelation and add it to a BBcTransaction object
-func AddRelationAssetBodyString(transaction *BBcTransaction, relationIdx int, assetGroupID, userID *[]byte, body string) {
+func AddRelationAssetBodyString(transaction *BBcTransaction, relationIdx int, assetGroupId, userId *[]byte, body string) {
 	if transaction == nil {
 		return
 	}
-	addInRelation(transaction, relationIdx, assetGroupID, userID)
-	if body != "" {
-		transaction.Relations[relationIdx].Asset.AddBodyString(body)
-	}
+	transaction.Relations[relationIdx].AssetGroupID = make([]byte, transaction.IdLengthConf.AssetGroupIdLength)
+	copy(transaction.Relations[relationIdx].AssetGroupID, *assetGroupId)
+	transaction.Relations[relationIdx].AddAsset(userId, nil, body)
 }
 
 // AddRelationAssetBodyObject sets an object (map[string]interface{}) in BBcAsset in BBcRelation, convert the info into msgpack, and add it in a BBcTransaction object
-func AddRelationAssetBodyObject(transaction *BBcTransaction, relationIdx int, assetGroupID, userID *[]byte, body interface{}) {
+func AddRelationAssetBodyObject(transaction *BBcTransaction, relationIdx int, assetGroupId, userId *[]byte, body interface{}) {
 	if transaction == nil {
 		return
 	}
-	addInRelation(transaction, relationIdx, assetGroupID, userID)
-	if body != nil {
-		if err := transaction.Relations[relationIdx].Asset.AddBodyObject(body); err != nil {
-			fmt.Println("Fail to exec AddRelationAssetBodyObject")
-		}
-	}
+	transaction.Relations[relationIdx].AssetGroupID = make([]byte, transaction.IdLengthConf.AssetGroupIdLength)
+	copy(transaction.Relations[relationIdx].AssetGroupID, *assetGroupId)
+	transaction.Relations[relationIdx].AddAsset(userId, nil, body)
 }
 
 // AddRelationAssetRawBody sets a data in BBcAssetRaw in BBcRelation and add it to a BBcTransaction object
-func AddRelationAssetRaw(transaction *BBcTransaction, relationIdx int, assetGroupID, assetID *[]byte, assetBody interface{}) {
-	ast := BBcAssetRaw{}
-	ast.SetIdLengthConf(&transaction.IdLengthConf)
-	ast.AddBody(assetID, assetBody)
-	transaction.Relations[relationIdx].AddAssetRaw(assetGroupID, &ast)
-	if transaction.Version < 2 {
-		transaction.Version = 2
-		transaction.Relations[relationIdx].Version = 2
-	}
+func AddRelationAssetRaw(transaction *BBcTransaction, relationIdx int, assetGroupId, assetId *[]byte, assetBody interface{}) {
+	transaction.Relations[relationIdx].AssetGroupID = make([]byte, transaction.IdLengthConf.AssetGroupIdLength)
+	copy(transaction.Relations[relationIdx].AssetGroupID, *assetGroupId)
+	transaction.Relations[relationIdx].AddAssetRaw(assetId, assetBody)
 }
 
 // AddRelationAssetHash sets assetIDs in BBcAssetHash in BBcRelation and add it to a BBcTransaction object
-func AddRelationAssetHash(transaction *BBcTransaction, relationIdx int, assetGroupID *[]byte) {
-	ast := BBcAssetHash{}
-	ast.SetIdLengthConf(&transaction.IdLengthConf)
-	transaction.Relations[relationIdx].AddAssetHash(assetGroupID, &ast)
-	if transaction.Version < 2 {
-		transaction.Version = 2
-		transaction.Relations[relationIdx].Version = 2
-	}
+func AddRelationAssetHash(transaction *BBcTransaction, relationIdx int, assetGroupId, assetIds *[]byte) {
+	transaction.Relations[relationIdx].AssetGroupID = make([]byte, transaction.IdLengthConf.AssetGroupIdLength)
+	copy(transaction.Relations[relationIdx].AssetGroupID, *assetGroupId)
+	transaction.Relations[relationIdx].AddAssetHash(assetIds)
 }
 
 // AddRelationPointer creates and includes a BBcPointer object in BBcRelation and then, add it in a BBcTransaction object
-func AddRelationPointer(transaction *BBcTransaction, relationIdx int, refTransactionID, refAssetID *[]byte) {
+func AddRelationPointer(transaction *BBcTransaction, relationIdx int, refTransactionId, refAssetId *[]byte) {
 	if transaction == nil {
 		return
 	}
-	ptr := BBcPointer{}
-	transaction.Relations[relationIdx].AddPointer(&ptr)
-	ptr.Add(refTransactionID, refAssetID)
+	transaction.Relations[relationIdx].AddPointer(refTransactionId, refAssetId)
 }
 
 // AddPointerInRelation creates and includes a BBcPointer object in BBcRelation
-func AddPointerInRelation(relation *BBcRelation, refTransaction *BBcTransaction, refAssetID *[]byte) {
-	ptr := BBcPointer{}
-	relation.AddPointer(&ptr)
-	ptr.Add(&refTransaction.TransactionID, refAssetID)
+func AddPointerInRelation(relation *BBcRelation, refTransaction *BBcTransaction, refAssetId *[]byte) {
+	relation.AddPointer(&refTransaction.TransactionID, refAssetId)
 }
 
 // AddReference creates and includes a BBcReference object in a BBcTransaction object
-func AddReference(transaction *BBcTransaction, assetGroupID *[]byte, refTransaction *BBcTransaction, eventIdx int) {
+func AddReference(transaction *BBcTransaction, assetGroupId *[]byte, refTransaction *BBcTransaction, eventIdx int) {
 	if transaction == nil || refTransaction == nil {
 		return
 	}
-	if refTransaction.TransactionID == nil {
-		refTransaction.Digest()
-	}
-	ref := BBcReference{}
-	transaction.AddReference(&ref)
-	ref.Add(assetGroupID, refTransaction, eventIdx)
+	transaction.AddReference(assetGroupId, refTransaction, eventIdx)
 }
 
 // addInEvent is an internal function to add a BBcEvent object in a BBcTransaction object
@@ -343,29 +317,19 @@ func AddEventAssetBodyObject(transaction *BBcTransaction, eventIdx int, assetGro
 }
 
 // MakeRelationWithAsset is a utility for making simple BBcTransaction object with BBcRelation with BBcAsset
-func MakeRelationWithAsset(assetGroupID, userID *[]byte, assetBodyString string, assetBodyObject interface{}, assetFile *[]byte) *BBcRelation {
+func MakeRelationWithAsset(assetGroupId, userId *[]byte, assetBodyString string, assetBodyObject interface{}, assetFile *[]byte) *BBcRelation {
 	rtn := BBcRelation{}
 	rtn.SetIdLengthConf(&IdLengthConfig)
-	ast := BBcAsset{}
-	ast.SetIdLengthConf(&IdLengthConfig)
-	ast.Add(userID)
-	rtn.Add(assetGroupID, &ast)
-	if assetFile != nil {
-		ast.AddFile(assetFile)
-	}
+	copy(rtn.AssetGroupID, *assetGroupId)
 	if assetBodyString != "" {
-		ast.AddBodyString(assetBodyString)
+		rtn.AddAsset(userId, assetFile, assetBodyString)
 	} else if assetBodyObject != nil {
-		ast.AddBodyObject(assetBodyObject)
+		rtn.AddAsset(userId, assetFile, assetBodyObject)
 	}
 	return &rtn
 }
 
 // SignToTransaction signs the transaction and append the BBcSignature object to it
-func SignToTransaction(transaction *BBcTransaction, userID *[]byte, keypair *KeyPair) {
-	sig := BBcSignature{}
-	sig.SetPublicKeyByKeypair(keypair)
-	signature, _ := transaction.Sign(keypair)
-	sig.SetSignature(&signature)
-	transaction.AddSignature(userID, &sig)
+func SignToTransaction(transaction *BBcTransaction, userId *[]byte, keyPair *KeyPair) {
+	transaction.AddSignature(userId, keyPair, false)
 }

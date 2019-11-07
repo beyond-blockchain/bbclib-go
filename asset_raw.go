@@ -33,6 +33,7 @@ The length of "AssetID" is defined by "IDLength".
 type (
 	BBcAssetRaw struct {
 		IdLengthConf      *BBcIdConfig
+		Version			  uint32
 		AssetID           []byte
 		AssetBodySize     uint16
 		AssetBody         []byte
@@ -53,7 +54,7 @@ func (p *BBcAssetRaw) SetIdLengthConf(conf * BBcIdConfig) {
 	p.IdLengthConf = conf
 }
 
-// AddBodyString sets a string data in the BBcAsset object
+// AddBody sets a string data in the BBcAsset object
 func (p *BBcAssetRaw) AddBody(assetID *[]byte, assetBody interface{}) {
 	if assetID != nil {
 		p.AssetID = make([]byte, p.IdLengthConf.AssetIdLength)
