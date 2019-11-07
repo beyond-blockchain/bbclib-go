@@ -19,6 +19,7 @@ package bbclib
 import (
 	"crypto/sha256"
 	"bytes"
+	"encoding/hex"
 	"testing"
 )
 
@@ -168,4 +169,23 @@ func TestKeyPair_Export_Import(t *testing.T) {
 
 	pubkey3 := keypair3.GetPublicKeyCompressed()
 	t.Logf("public key (compressed): %v", pubkey3)
+}
+
+
+func TestKeyId(t *testing.T) {
+	t.Run("KeyID calculation", func(t *testing.T) {
+		pem := "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIDSt1IOhS5ZmY6nkX/Wh7pT+Y45TmYxrwoc1pG72v387oAoGCCqGSM49\nAwEHoUQDQgAEdEsjD2i2LytHOjNxxc9PbFeqQ89aMLOfmdBbEoSOhZBukJ52EqQM\nhOdgHqyqD4hEyYxgDu3uIbKat+lEZEhb3Q==\n-----END EC PRIVATE KEY-----"
+		keyIdHex := "f7211e7e0db043a29fc6624006bf8dfaac9fafe65b0c6e0dfd573d81e95bd83e"
+		keypair := KeyPair{CurveType: KeyTypeEcdsaP256v1}
+		err := keypair.ConvertFromPem(pem, DefaultCompressionMode)
+		if err != nil {
+			t.Fatal("Fail to import pem key")
+		}
+
+		keyId, _ := keypair.GetKeyId()
+		t.Logf("keyID=%x\n", keyId)
+		if hex.EncodeToString(keyId) != keyIdHex {
+			t.Fatal("invalid keyId")
+		}
+	})
 }

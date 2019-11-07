@@ -17,13 +17,17 @@ limitations under the License.
 package bbclib
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"math/big"
+	"github.com/lestrrat-go/jwx/jwk"
 )
 
 /*
@@ -105,7 +109,6 @@ func setupKeypair(kp *KeyPair, privKey *ecdsa.PrivateKey) {
 	}
 }
 
-
 // GenerateKeypair generates a new Key pair object with new private key and public key
 func GenerateKeypair(curveType int, compressionMode int) (*KeyPair, error) {
 	if curveType != KeyTypeEcdsaP256v1 {
@@ -119,6 +122,20 @@ func GenerateKeypair(curveType int, compressionMode int) (*KeyPair, error) {
 	kp.CompressionType = compressionMode
 	setupKeypair(&kp, privKey)
 	return &kp, nil
+}
+
+// GetKeyId returns Key ID of the public key
+func (k *KeyPair) GetKeyId() ([]byte, error) {
+	jsonKey, err := jwk.New(k.PublicKeyStructure)
+	if err != nil {
+		return nil, err
+	}
+	a, _ := jsonKey.(*jwk.ECDSAPublicKey).MarshalJSON()
+	h := sha256.Sum256(a)
+	fmt.Printf("hex=%x\n", a)
+	fmt.Printf("--> %x\n", h)
+	thumbprint, err := jsonKey.Thumbprint(crypto.SHA256)
+	return thumbprint, err
 }
 
 // GetPublicKeyUncompressed gets a public key (uncompressed) from private key
