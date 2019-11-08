@@ -182,6 +182,15 @@ func Deserialize(dat []byte) (*BBcTransaction, error) {
 	return nil, errors.New("formatType not supported")
 }
 
+// CreateTransaction is a constructor of BBcTransaction object
+func CreateTransaction() *BBcTransaction {
+	txobj := BBcTransaction{Version: 2}
+	txobj.SetIdLengthConf(&IdLengthConfig)
+	txobj.Timestamp = time.Now().UnixNano() / int64(time.Microsecond)
+	return &txobj
+}
+
+
 // MakeTransaction is a utility for making simple BBcTransaction object with BBcEvent, BBcRelation or/and BBcWitness
 func MakeTransaction(eventNum, relationNum int, witness bool) *BBcTransaction {
 	txobj := BBcTransaction{Version: 2}

@@ -90,17 +90,17 @@ func makeFollowTXWithUtility(refTxObj *BBcTransaction) *BBcTransaction {
 func makeTransactions(conf BBcIdConfig, noPubkey bool) []*BBcTransaction {
 	transactions := make([]*BBcTransaction, 20)
 
-	txobj := BBcTransaction{Version: 2}
+	txobj := CreateTransaction()
 	txobj.SetIdLengthConf(&conf)
 	txobj.CreateRelation(AssetGroupID1).AddAsset(&UserID1, nil, "relation:asset_0-0")
 	txobj.CreateEvent(AssetGroupID1, nil).AddAsset(&UserID1, nil, "event:asset_0-0").AddMandatoryApprover(&UserID1)
 	txobj.AddWitness(&UserID1)
 	txobj.AddSignature(&UserID1, keypair1, noPubkey)
-	transactions[0] = &txobj
+	transactions[0] = txobj
 	//fmt.Println(txobj.Stringer())
 
 	for i:=1; i<20; i++ {
-		txobj := BBcTransaction{Version: 2}
+		txobj := CreateTransaction()
 		txobj.SetIdLengthConf(&conf)
 		txobj.CreateRelation(AssetGroupID1).AddAsset(&UserID1, nil, fmt.Sprintf("relation:asset_1-%d", i)).AddPointer(&transactions[i-1].TransactionID, &transactions[i-1].Relations[0].Asset.AssetID)
 		txobj.CreateRelation(AssetGroupID2).AddAsset(&UserID2, nil, fmt.Sprintf("relation:asset_2-%d", i)).AddPointer(&transactions[i-1].TransactionID, &transactions[i-1].Relations[0].Asset.AssetID).AddPointer(&transactions[0].TransactionID, &transactions[0].Relations[0].Asset.AssetID)
@@ -123,7 +123,7 @@ func makeTransactions(conf BBcIdConfig, noPubkey bool) []*BBcTransaction {
 		txobj.AddSignature(&UserID1, keypair1, noPubkey)
 		txobj.AddSignature(&UserID2, keypair2, noPubkey)
 
-		transactions[i] = &txobj
+		transactions[i] = txobj
 		//fmt.Println(txobj.Stringer())
 	}
 	return transactions
