@@ -1,6 +1,10 @@
 CHANGELOG
 ====
 
+## v1.6.0
+* change programming interfaces
+  - BBcTransaction and its child classes provide utility methods to create objects.
+
 ## v1.5.1
 * remove dependency on libbcsig
   - all key manipulation and sign/verify functions become golang native

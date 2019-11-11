@@ -53,11 +53,11 @@ func (p *BBcPointer) SetIdLengthConf(conf * BBcIdConfig) {
 func (p *BBcPointer) Add(txid *[]byte, asid *[]byte) {
 	if txid != nil {
 		p.TransactionID = make([]byte, p.IdLengthConf.TransactionIdLength)
-		copy(p.TransactionID, (*txid)[:p.IdLengthConf.TransactionIdLength])
+		copy(p.TransactionID, *txid)
 	}
 	if asid != nil {
 		p.AssetID = make([]byte, p.IdLengthConf.AssetIdLength)
-		copy(p.AssetID, (*asid)[:p.IdLengthConf.AssetIdLength])
+		copy(p.AssetID, *asid)
 	}
 }
 

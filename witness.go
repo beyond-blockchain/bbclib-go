@@ -37,6 +37,7 @@ This object should be used if BBcRelation is used or a certain user wants to sig
 type (
 	BBcWitness struct {
 		IdLengthConf *BBcIdConfig
+		Version 	 uint32
 		UserIDs      [][]byte
 		SigIndices   []int
 		Transaction  *BBcTransaction
@@ -70,12 +71,12 @@ func (p *BBcWitness) SetTransaction(txobj *BBcTransaction) {
 
 // AddWitness makes a memo for managing signer who sign this BBcTransaction object
 // This must be done before AddSignature.
-func (p *BBcWitness) AddWitness(userID *[]byte) error {
+func (p *BBcWitness) AddWitness(userId *[]byte) error {
 	if p.Transaction == nil {
 		return errors.New("transaction must be set")
 	}
 	uid := make([]byte, int(p.IdLengthConf.UserIdLength))
-	copy(uid, *userID)
+	copy(uid, *userId)
 	p.UserIDs = append(p.UserIDs, uid)
 	idx := p.Transaction.GetSigIndex(uid)
 	p.SigIndices = append(p.SigIndices, idx)
@@ -89,7 +90,7 @@ func (p *BBcWitness) AddSignature(userID *[]byte, sig *BBcSignature) error {
 	}
 	uid := make([]byte, int(p.IdLengthConf.UserIdLength))
 	copy(uid, *userID)
-	p.Transaction.AddSignature(&uid, sig)
+	p.Transaction.AddSignatureObj(&uid, sig)
 	return nil
 }
 

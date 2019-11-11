@@ -87,47 +87,59 @@ func (p *BBcRelation) SetVersion(version uint32) {
 	p.Version = version
 }
 
+// SetAssetGroup sets asset_group_id in the BBcRelation object
+func (p *BBcRelation) SetAssetGroup(assetGroupId *[]byte) *BBcRelation {
+	p.AssetGroupID = make([]byte, p.IdLengthConf.AssetGroupIdLength)
+	copy(p.AssetGroupID, (*assetGroupId)[:p.IdLengthConf.AssetGroupIdLength])
+	return p
+}
+
 // Add sets essential information (assetGroupID and BBcAsset object) to the BBcRelation object
-func (p *BBcRelation) Add(assetGroupID *[]byte, asset *BBcAsset) {
-	if assetGroupID != nil {
-		p.AssetGroupID = make([]byte, p.IdLengthConf.AssetGroupIdLength)
-		copy(p.AssetGroupID, *assetGroupID)
+func (p *BBcRelation) CreateAsset(userId *[]byte, fileContent *[]byte, bodyContent interface{}) *BBcRelation {
+	obj := BBcAsset{Version: p.Version}
+	obj.SetIdLengthConf(p.IdLengthConf)
+	obj.Add(userId)
+	if fileContent != nil {
+		obj.AddFile(fileContent)
 	}
-	if asset != nil {
-		p.Asset = asset
-		p.Asset.SetIdLengthConf(p.IdLengthConf)
+	if bodyContent != nil {
+		obj.AddBody(bodyContent)
 	}
+	p.Asset = &obj
+	return p
 }
 
 // Add sets essential information (assetGroupID and BBcAssetRaw object) to the BBcRelation object
-func (p *BBcRelation) AddAssetRaw(assetGroupID *[]byte, asset *BBcAssetRaw) {
-	if assetGroupID != nil {
-		p.AssetGroupID = make([]byte, p.IdLengthConf.AssetGroupIdLength)
-		copy(p.AssetGroupID, *assetGroupID)
+func (p *BBcRelation) CreateAssetRaw(assetID *[]byte, bodyContent interface{}) *BBcRelation {
+	obj := BBcAssetRaw{Version: p.Version}
+	obj.SetIdLengthConf(p.IdLengthConf)
+	if bodyContent != nil {
+		obj.AddBody(assetID, bodyContent)
 	}
-	if asset != nil {
-		p.AssetRaw = asset
-		p.AssetRaw.SetIdLengthConf(p.IdLengthConf)
-	}
+	p.AssetRaw = &obj
+	return p
 }
 
 // Add sets essential information (assetGroupID and BBcAssetHash object) to the BBcRelation object
-func (p *BBcRelation) AddAssetHash(assetGroupID *[]byte, asset *BBcAssetHash) {
-	if assetGroupID != nil {
-		p.AssetGroupID = make([]byte, p.IdLengthConf.AssetGroupIdLength)
-		copy(p.AssetGroupID, *assetGroupID)
+func (p *BBcRelation) CreateAssetHash(assetId *[]byte) *BBcRelation {
+	if p.AssetHash == nil {
+		obj := BBcAssetHash{Version: p.Version}
+		obj.SetIdLengthConf(p.IdLengthConf)
+		p.AssetHash = &obj
 	}
-	if asset != nil {
-		p.AssetHash = asset
-		p.AssetHash.SetIdLengthConf(p.IdLengthConf)
-	}
+	p.AssetHash.AddAssetId(assetId)
+	return p
 }
 
 // AddPointer sets the BBcPointer object in the object
-func (p *BBcRelation) AddPointer(pointer *BBcPointer) {
-	pointer.SetIdLengthConf(p.IdLengthConf)
-	p.Pointers = append(p.Pointers, pointer)
+func (p *BBcRelation) CreatePointer(transactionId, assetId *[]byte) *BBcRelation {
+	obj := BBcPointer{}
+	obj.SetIdLengthConf(p.IdLengthConf)
+	obj.Add(transactionId, assetId)
+	p.Pointers = append(p.Pointers, &obj)
+	return p
 }
+
 
 // Pack returns the binary data of the BBcRelation object
 func (p *BBcRelation) Pack() ([]byte, error) {

@@ -44,6 +44,7 @@ Asset is the most important part of the BBcTransaction. The BBcAsset object incl
 type (
 	BBcEvent struct {
 		IdLengthConf         		 *BBcIdConfig
+		Version						 uint32
 		AssetGroupID                 []byte
 		ReferenceIndices             []int
 		MandatoryApprovers           [][]byte
@@ -105,31 +106,57 @@ func (p *BBcEvent) Add(assetGroupID *[]byte, asset *BBcAsset) {
 	}
 }
 
+// SetAssetGroup sets asset_group_id in the BBcEvent object
+func (p *BBcEvent) SetAssetGroup(assetGroupId *[]byte) *BBcEvent {
+	p.AssetGroupID = make([]byte, p.IdLengthConf.AssetGroupIdLength)
+	copy(p.AssetGroupID, (*assetGroupId)[:p.IdLengthConf.AssetGroupIdLength])
+	return p
+}
+
 // AddReferenceIndex sets an index to ReferenceIndices of the BBcEvent object
-func (p *BBcEvent) AddReferenceIndex(relIndex int) {
+func (p *BBcEvent) AddReferenceIndex(relIndex int) *BBcEvent {
 	if relIndex != -1 {
 		p.ReferenceIndices = append(p.ReferenceIndices, relIndex)
 	}
+	return p
 }
 
 // AddOptionParams sets values to OptionApproverNumNumerator and OptionApproverNumDenominator in the BBcEvent object
-func (p *BBcEvent) AddOptionParams(numerator int, denominator int) {
+func (p *BBcEvent) SetOptionParams(numerator int, denominator int) *BBcEvent {
 	p.OptionApproverNumNumerator = uint16(numerator)
 	p.OptionApproverNumDenominator = uint16(denominator)
+	return p
 }
 
 // AddMandatoryApprover sets userID in MandatoryApprover list of the BBcEvent object
-func (p *BBcEvent) AddMandatoryApprover(userID *[]byte) {
+func (p *BBcEvent) AddMandatoryApprover(userID *[]byte) *BBcEvent {
 	uid := make([]byte, p.IdLengthConf.UserIdLength)
 	copy(uid, *userID)
 	p.MandatoryApprovers = append(p.MandatoryApprovers, uid)
+	return p
 }
 
 // AddOptionApprover sets userID in OptionApprover list of the BBcEvent object
-func (p *BBcEvent) AddOptionApprover(userID *[]byte) {
+func (p *BBcEvent) AddOptionApprover(userID *[]byte) *BBcEvent {
 	uid := make([]byte, p.IdLengthConf.UserIdLength)
 	copy(uid, *userID)
 	p.OptionApprovers = append(p.OptionApprovers, uid)
+	return p
+}
+
+// Add sets essential information (assetGroupID and BBcAsset object) to the BBcEvent object
+func (p *BBcEvent) CreateAsset(userId *[]byte, fileContent *[]byte, bodyContent interface{}) *BBcEvent {
+	obj := BBcAsset{Version: p.Version}
+	obj.SetIdLengthConf(p.IdLengthConf)
+	obj.Add(userId)
+	if fileContent != nil {
+		obj.AddFile(fileContent)
+	}
+	if bodyContent != nil {
+		obj.AddBody(bodyContent)
+	}
+	p.Asset = &obj
+	return p
 }
 
 // Pack returns the binary data of the BBcEvent object

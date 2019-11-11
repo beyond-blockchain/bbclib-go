@@ -37,6 +37,7 @@ BBcAsset can contain a digest of a file, string, map[string]interface{} object a
 type (
 	BBcAsset struct {
 		IdLengthConf      *BBcIdConfig
+		Version			  uint32
 		digestCalculating bool
 		AssetID           []byte
 		UserID            []byte
@@ -113,6 +114,19 @@ func (p *BBcAsset) AddFile(fileContent *[]byte) {
 	p.AssetFileSize = uint32(binary.Size(fileContent))
 	digest := sha256.Sum256(*fileContent)
 	p.AssetFileDigest = digest[:]
+}
+
+// AddBody sets data in the BBcAsset object
+func (p *BBcAsset) AddBody(bodyContent interface{}) {
+	if body, ok := bodyContent.(string); ok {
+		p.AssetBody = []byte(body)
+		p.AssetBodySize = uint16(len(body))
+	} else if body, ok := bodyContent.([]byte); ok {
+		copy(p.AssetBody, body)
+		p.AssetBodySize = uint16(len(body))
+	} else {
+		_ = p.AddBodyObject(bodyContent)
+	}
 }
 
 // AddBodyString sets a string data in the BBcAsset object
