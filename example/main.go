@@ -22,13 +22,13 @@ func makeTransaction(num int) *bbclib.BBcTransaction {
 	filedat, _ := ioutil.ReadFile("./asset_test.go")
 	datobj := map[string]string{"param1": "aaa", "param2": "bbb", "param3": string(num)}
 
-	txobj := bbclib.CreateTransaction()
-	txobj.CreateEvent(assetGroupID, nil).AddMandatoryApprover(&u1).AddAsset(&u1, nil, bodyString)
-	txobj.CreateEvent(assetGroupID, nil).AddMandatoryApprover(&u2).AddAsset(&u2, &filedat, nil)
-	txobj.CreateEvent(assetGroupID, nil).AddMandatoryApprover(&u1).AddAsset(&u1, nil, &datobj)
+	txobj := bbclib.MakeTransaction(3, 0, true)
+	txobj.Events[0].SetAssetGroup(&assetGroupID).AddMandatoryApprover(&u1).CreateAsset(&u1, nil, bodyString)
+	txobj.Events[1].SetAssetGroup(&assetGroupID).AddMandatoryApprover(&u2).CreateAsset(&u2, &filedat, nil)
+	txobj.Events[2].SetAssetGroup(&assetGroupID).AddMandatoryApprover(&u1).CreateAsset(&u1, nil, &datobj)
 	txobj.AddWitness(&u1).AddWitness(&u2)
 
-	txobj.AddSignature(&u1, keypair1, false).AddSignature(&u2, keypair2, false)
+	txobj.Sign(&u1, keypair1, false).Sign(&u2, keypair2, false)
 	return txobj
 }
 

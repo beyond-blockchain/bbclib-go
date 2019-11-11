@@ -129,16 +129,36 @@ func (p *BBcTransaction) SetIdLengthConf(conf * BBcIdConfig) {
 	p.TransactionIdLength = conf.TransactionIdLength
 }
 
+
 // AddEvent adds the BBcEvent object in the transaction object
-func (p *BBcTransaction) CreateEvent(assetGroupId []byte, referenceIndices []int) *BBcEvent {
-	obj := BBcEvent{Version: p.Version, AssetGroupID: assetGroupId[:p.IdLengthConf.AssetGroupIdLength], ReferenceIndices: referenceIndices}
+func (p *BBcTransaction) AddEvent(assetGroupId *[]byte, referenceIndices *[]int) *BBcTransaction {
+	obj := BBcEvent{Version: p.Version}
 	obj.SetIdLengthConf(&p.IdLengthConf)
+	if assetGroupId != nil {
+		obj.SetAssetGroup(assetGroupId)
+	}
+	if referenceIndices != nil {
+		for _, idx := range *referenceIndices {
+			obj.AddReferenceIndex(idx)
+		}
+	}
 	p.Events = append(p.Events, &obj)
-	return &obj
+	return p
+}
+
+// AddRelation adds the BBcRelation object in the transaction object
+func (p *BBcTransaction) AddRelation(assetGroupId *[]byte) *BBcTransaction {
+	obj := BBcRelation{Version: p.Version}
+	obj.SetIdLengthConf(&p.IdLengthConf)
+	if assetGroupId != nil {
+		obj.SetAssetGroup(assetGroupId)
+	}
+	p.Relations = append(p.Relations, &obj)
+	return p
 }
 
 // AddReference adds the BBcReference object in the transaction object
-func (p *BBcTransaction) AddReference(assetGroupID *[]byte, refTransaction *BBcTransaction, eventIdx int) *BBcTransaction {
+func (p *BBcTransaction) CreateReference(assetGroupID *[]byte, refTransaction *BBcTransaction, eventIdx int) *BBcTransaction {
 	obj := BBcReference{Version: p.Version, Transaction: p}
 	obj.SetIdLengthConf(&p.IdLengthConf)
 	obj.Add(assetGroupID, refTransaction, eventIdx)
@@ -146,17 +166,9 @@ func (p *BBcTransaction) AddReference(assetGroupID *[]byte, refTransaction *BBcT
 	return p
 }
 
-// AddRelation adds the BBcRelation object in the transaction object
-func (p *BBcTransaction) CreateRelation(assetGroupId []byte) *BBcRelation {
-	obj := BBcRelation{Version: p.Version, AssetGroupID: assetGroupId[:p.IdLengthConf.AssetGroupIdLength]}
-	obj.SetIdLengthConf(&p.IdLengthConf)
-	obj.SetVersion(p.Version)
-	p.Relations = append(p.Relations, &obj)
-	return &obj
-}
 
 // AddCrossRef sets the BBcCrossRef object in the transaction object
-func (p *BBcTransaction) AddCrossRef(domainId, transactionId *[]byte) *BBcTransaction {
+func (p *BBcTransaction) CreateCrossRef(domainId, transactionId *[]byte) *BBcTransaction {
 	obj := BBcCrossRef{Version: p.Version}
 	obj.SetIdLengthConf(&p.IdLengthConf)
 	obj.Add(domainId, transactionId)
@@ -178,14 +190,14 @@ func (p *BBcTransaction) AddWitness(userId *[]byte) *BBcTransaction {
 
 
 // AddSignature adds the BBcSignature object for the specified userID in the transaction object
-func (p *BBcTransaction) AddSignature(userId *[]byte, keyPair *KeyPair, noPubkey bool) *BBcTransaction {
+func (p *BBcTransaction) Sign(userId *[]byte, keyPair *KeyPair, noPubkey bool) *BBcTransaction {
 	obj := BBcSignature{Version: p.Version}
 	if noPubkey {
 		obj.SetPublicKeyInfo(uint32(keyPair.CurveType))
 	} else {
 		obj.SetPublicKeyByKeypair(keyPair)
 	}
-	signature, _ := p.Sign(keyPair)
+	signature, _ := p.doSign(keyPair)
 	obj.Signature = signature
 	obj.SignatureLen = uint32(len(signature)*8)
 
@@ -258,7 +270,7 @@ func (p *BBcTransaction) SetSigIndex(userID []byte, idx int) {
 }
 
 // Sign TransactionID using private key in the given keypair
-func (p *BBcTransaction) Sign(keypair *KeyPair) ([]byte, error) {
+func (p *BBcTransaction) doSign(keypair *KeyPair) ([]byte, error) {
 	digest := p.Digest()
 	signature := keypair.Sign(digest)
 	if signature == nil {

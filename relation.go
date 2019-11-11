@@ -87,8 +87,15 @@ func (p *BBcRelation) SetVersion(version uint32) {
 	p.Version = version
 }
 
+// SetAssetGroup sets asset_group_id in the BBcRelation object
+func (p *BBcRelation) SetAssetGroup(assetGroupId *[]byte) *BBcRelation {
+	p.AssetGroupID = make([]byte, p.IdLengthConf.AssetGroupIdLength)
+	copy(p.AssetGroupID, (*assetGroupId)[:p.IdLengthConf.AssetGroupIdLength])
+	return p
+}
+
 // Add sets essential information (assetGroupID and BBcAsset object) to the BBcRelation object
-func (p *BBcRelation) AddAsset(userId *[]byte, fileContent *[]byte, bodyContent interface{}) *BBcRelation {
+func (p *BBcRelation) CreateAsset(userId *[]byte, fileContent *[]byte, bodyContent interface{}) *BBcRelation {
 	obj := BBcAsset{Version: p.Version}
 	obj.SetIdLengthConf(p.IdLengthConf)
 	obj.Add(userId)
@@ -103,7 +110,7 @@ func (p *BBcRelation) AddAsset(userId *[]byte, fileContent *[]byte, bodyContent 
 }
 
 // Add sets essential information (assetGroupID and BBcAssetRaw object) to the BBcRelation object
-func (p *BBcRelation) AddAssetRaw(assetID *[]byte, bodyContent interface{}) *BBcRelation {
+func (p *BBcRelation) CreateAssetRaw(assetID *[]byte, bodyContent interface{}) *BBcRelation {
 	obj := BBcAssetRaw{Version: p.Version}
 	obj.SetIdLengthConf(p.IdLengthConf)
 	if bodyContent != nil {
@@ -114,7 +121,7 @@ func (p *BBcRelation) AddAssetRaw(assetID *[]byte, bodyContent interface{}) *BBc
 }
 
 // Add sets essential information (assetGroupID and BBcAssetHash object) to the BBcRelation object
-func (p *BBcRelation) AddAssetHash(assetId *[]byte) *BBcRelation {
+func (p *BBcRelation) CreateAssetHash(assetId *[]byte) *BBcRelation {
 	if p.AssetHash == nil {
 		obj := BBcAssetHash{Version: p.Version}
 		obj.SetIdLengthConf(p.IdLengthConf)
@@ -125,7 +132,7 @@ func (p *BBcRelation) AddAssetHash(assetId *[]byte) *BBcRelation {
 }
 
 // AddPointer sets the BBcPointer object in the object
-func (p *BBcRelation) AddPointer(transactionId, assetId *[]byte) *BBcRelation {
+func (p *BBcRelation) CreatePointer(transactionId, assetId *[]byte) *BBcRelation {
 	obj := BBcPointer{}
 	obj.SetIdLengthConf(p.IdLengthConf)
 	obj.Add(transactionId, assetId)

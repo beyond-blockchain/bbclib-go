@@ -42,24 +42,26 @@ var (
 
 
 func makeBaseTx(idconf BBcIdConfig) BBcTransaction {
-	txobj := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
+	txobj := BBcTransaction{Version: 2, Timestamp: time.Now().UnixNano()}
 	txobj.SetIdLengthConf(&idconf)
 	keyPair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
+	txobj.AddEvent(nil, nil)
 
 	assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
 	dom := GetIdentifier("dummy domain", defaultIDLength)
 	dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
-	txobj.CreateEvent(assetgroup, []int{0}).AddMandatoryApprover(&txtest_u1).AddMandatoryApprover(&txtest_u2).AddOptionParams(1, 2).AddOptionApprover(&txtest_u3).AddOptionApprover(&txtest_u4).AddAsset(&txtest_u1, nil, "testString12345XXX")
-	txobj.AddCrossRef(&dom, &dummyTxid)
+	txobj.Events[0].SetAssetGroup(&assetgroup).AddReferenceIndex(0).AddMandatoryApprover(&txtest_u1).AddMandatoryApprover(&txtest_u2).SetOptionParams(1, 2).AddOptionApprover(&txtest_u3).AddOptionApprover(&txtest_u4).CreateAsset(&txtest_u1, nil, "testString12345XXX")
+	txobj.CreateCrossRef(&dom, &dummyTxid)
 	txobj.AddWitness(&txtest_u1)
-	txobj.AddSignature(&txtest_u1, keyPair, false)
+	txobj.Sign(&txtest_u1, keyPair, false)
 	return txobj
 }
 
 func makeFollowTX(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcTransaction {
 	keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
-	txobj := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
+	txobj := BBcTransaction{Version: 2, Timestamp: time.Now().UnixNano()}
 	txobj.SetIdLengthConf(&idconf)
+	txobj.AddRelation(nil)
 
 	assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
 	txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
@@ -68,16 +70,16 @@ func makeFollowTX(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcTransaction {
 	dom := GetIdentifier("dummy domain", defaultIDLength)
 	dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
 
-	txobj.AddCrossRef(&dom, &dummyTxid)
-	txobj.CreateRelation(assetgroup).AddPointer(&txid1, &asid1).AddPointer(&txid2, nil).AddAsset(&txtest_u1, nil, "testString12345XXX")
-	txobj.AddReference(&assetgroup, refTxObj, 0)
+	txobj.CreateCrossRef(&dom, &dummyTxid)
+	txobj.Relations[0].SetAssetGroup(&assetgroup).CreatePointer(&txid1, &asid1).CreatePointer(&txid2, nil).CreateAsset(&txtest_u1, nil, "testString12345XXX")
+	txobj.CreateReference(&assetgroup, refTxObj, 0)
 	txobj.AddWitness(&txtest_u5).AddWitness(&txtest_u6)
 
-	txobj.AddSignature(&txtest_u1, keypair, false)
-	txobj.AddSignature(&txtest_u2, keypair, false)
-	txobj.AddSignature(&txtest_u4, keypair, false)
-	txobj.AddSignature(&txtest_u5, keypair, false)
-	txobj.AddSignature(&txtest_u6, keypair, false)
+	txobj.Sign(&txtest_u1, keypair, false)
+	txobj.Sign(&txtest_u2, keypair, false)
+	txobj.Sign(&txtest_u4, keypair, false)
+	txobj.Sign(&txtest_u5, keypair, false)
+	txobj.Sign(&txtest_u6, keypair, false)
 	return txobj
 }
 
@@ -85,6 +87,7 @@ func makeFollowTXWithAssetRaw(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcT
 	keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 	txobj := BBcTransaction{Version: 2, Timestamp: time.Now().UnixNano()}
 	txobj.SetIdLengthConf(&idconf)
+	txobj.AddRelation(nil)
 
 	assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
 	asid := GetIdentifier("user1_789abcdef0123456789abcdef0", idLengthConfig.AssetIdLength)
@@ -94,16 +97,16 @@ func makeFollowTXWithAssetRaw(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcT
 	dom := GetIdentifier("dummy domain", defaultIDLength)
 	dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
 
-	txobj.AddCrossRef(&dom, &dummyTxid)
-	txobj.CreateRelation(assetgroup).AddPointer(&txid1, &asid1).AddPointer(&txid2, nil).AddAssetRaw(&asid,"testString12345XXX")
-	txobj.AddReference(&assetgroup, refTxObj, 0)
+	txobj.CreateCrossRef(&dom, &dummyTxid)
+	txobj.Relations[0].SetAssetGroup(&assetgroup).CreatePointer(&txid1, &asid1).CreatePointer(&txid2, nil).CreateAssetRaw(&asid,"testString12345XXX")
+	txobj.CreateReference(&assetgroup, refTxObj, 0)
 	txobj.AddWitness(&txtest_u5).AddWitness(&txtest_u6)
 
-	txobj.AddSignature(&txtest_u1, keypair, false)
-	txobj.AddSignature(&txtest_u2, keypair, false)
-	txobj.AddSignature(&txtest_u4, keypair, false)
-	txobj.AddSignature(&txtest_u5, keypair, false)
-	txobj.AddSignature(&txtest_u6, keypair, false)
+	txobj.Sign(&txtest_u1, keypair, false)
+	txobj.Sign(&txtest_u2, keypair, false)
+	txobj.Sign(&txtest_u4, keypair, false)
+	txobj.Sign(&txtest_u5, keypair, false)
+	txobj.Sign(&txtest_u6, keypair, false)
 	return txobj
 }
 
@@ -111,6 +114,7 @@ func makeFollowTXWithAssetHash(idconf BBcIdConfig, refTxObj *BBcTransaction) BBc
 	keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 	txobj := BBcTransaction{Version: 2, Timestamp: time.Now().UnixNano()}
 	txobj.SetIdLengthConf(&idconf)
+	txobj.AddRelation(nil)
 
 	assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
 	txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
@@ -119,20 +123,20 @@ func makeFollowTXWithAssetHash(idconf BBcIdConfig, refTxObj *BBcTransaction) BBc
 	dom := GetIdentifier("dummy domain", defaultIDLength)
 	dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
 
-	txobj.AddCrossRef(&dom, &dummyTxid)
-	txobj.CreateRelation(assetgroup).AddPointer(&txid1, &asid1).AddPointer(&txid2, nil)
+	txobj.CreateCrossRef(&dom, &dummyTxid)
+	txobj.Relations[0].SetAssetGroup(&assetgroup).CreatePointer(&txid1, &asid1).CreatePointer(&txid2, nil)
 	for i := 0; i < 3; i++ {
 		a := GetIdentifier(fmt.Sprintf("asset_id_%d", i), idLengthConfig.AssetIdLength)
-		txobj.Relations[0].AddAssetHash(&a)
+		txobj.Relations[0].CreateAssetHash(&a)
 	}
-	txobj.AddReference(&assetgroup, refTxObj, 0)
+	txobj.CreateReference(&assetgroup, refTxObj, 0)
 	txobj.AddWitness(&txtest_u5).AddWitness(&txtest_u6)
 
-	txobj.AddSignature(&txtest_u1, keypair, false)
-	txobj.AddSignature(&txtest_u2, keypair, false)
-	txobj.AddSignature(&txtest_u4, keypair, false)
-	txobj.AddSignature(&txtest_u5, keypair, false)
-	txobj.AddSignature(&txtest_u6, keypair, false)
+	txobj.Sign(&txtest_u1, keypair, false)
+	txobj.Sign(&txtest_u2, keypair, false)
+	txobj.Sign(&txtest_u4, keypair, false)
+	txobj.Sign(&txtest_u5, keypair, false)
+	txobj.Sign(&txtest_u6, keypair, false)
 	return txobj
 }
 
@@ -142,6 +146,7 @@ func TestTransactionPackUnpackSimple(t *testing.T) {
 		keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 		txobj := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
 		txobj.SetIdLengthConf(&idLengthConfig)
+		txobj.AddRelation(nil)
 
 		assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
 		txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
@@ -150,11 +155,11 @@ func TestTransactionPackUnpackSimple(t *testing.T) {
 		dom := GetIdentifier("dummy domain", defaultIDLength)
 		dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
 
-		txobj.AddCrossRef(&dom, &dummyTxid)
-		txobj.CreateRelation(assetgroup).AddPointer(&txid1, &asid1).AddPointer(&txid2, nil).AddAsset(&txtest_u1, nil, "testString12345XXX")
+		txobj.CreateCrossRef(&dom, &dummyTxid)
+		txobj.Relations[0].SetAssetGroup(&assetgroup).CreatePointer(&txid1, &asid1).CreatePointer(&txid2, nil).CreateAsset(&txtest_u1, nil, "testString12345XXX")
 		txobj.AddWitness(&txtest_u1).AddWitness(&txtest_u2)
-		txobj.AddSignature(&txtest_u1, keypair, false)
-		txobj.AddSignature(&txtest_u2, keypair, false)
+		txobj.Sign(&txtest_u1, keypair, false)
+		txobj.Sign(&txtest_u2, keypair, false)
 
 		/*
 		t.Log("---------------transaction-----------------")
@@ -228,19 +233,20 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 		txobj3 := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
 		txobj3.SetIdLengthConf(&idLengthConfig)
+		txobj3.AddEvent(nil, nil)
 
 		assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
 		dom := GetIdentifier("dummy domain", defaultIDLength)
 		dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
 
-		txobj3.AddCrossRef(&dom, &dummyTxid)
-		txobj3.CreateEvent(assetgroup, []int{0}).AddMandatoryApprover(&txtest_u1).AddMandatoryApprover(&txtest_u2).AddOptionParams(0, 0).AddAsset(&txtest_u1, nil, "testString12345XXX")
-		txobj3.AddReference(&assetgroup, &txobj2, 0)
+		txobj3.CreateCrossRef(&dom, &dummyTxid)
+		txobj3.Events[0].SetAssetGroup(&assetgroup).AddReferenceIndex(0).AddMandatoryApprover(&txtest_u1).AddMandatoryApprover(&txtest_u2).SetOptionParams(0, 0).CreateAsset(&txtest_u1, nil, "testString12345XXX")
+		txobj3.CreateReference(&assetgroup, &txobj2, 0)
 		txobj3.AddWitness(&txtest_u1).AddWitness(&txtest_u3)
-		txobj3.AddSignature(&txtest_u1, keypair, false)
-		txobj3.AddSignature(&txtest_u2, keypair, false)
-		txobj3.AddSignature(&txtest_u2, keypair, false)
-		//ref.AddSignature(&txtest_u2, &sig2)
+		txobj3.Sign(&txtest_u1, keypair, false)
+		txobj3.Sign(&txtest_u2, keypair, false)
+		txobj3.Sign(&txtest_u2, keypair, false)
+		//ref.Sign(&txtest_u2, &sig2)
 
 		/*
 			t.Log("---------------transaction-----------------")
@@ -281,6 +287,8 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 		txobj4 := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
 		txobj4.SetIdLengthConf(&idLengthConfig)
+		txobj4.AddRelation(nil)
+
 
 		assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
 		txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
@@ -289,9 +297,9 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		dom := GetIdentifier("dummy domain", defaultIDLength)
 		dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
 
-		txobj4.AddCrossRef(&dom, &dummyTxid)
-		txobj4.CreateRelation(assetgroup).AddPointer(&txid1, &asid1).AddPointer(&txid2, nil).AddAsset(&txtest_u1, nil, "testString12345XXX")
-		txobj4.AddReference(&assetgroup, &txobj2, 0)
+		txobj4.CreateCrossRef(&dom, &dummyTxid)
+		txobj4.Relations[0].SetAssetGroup(&assetgroup).CreatePointer(&txid1, &asid1).CreatePointer(&txid2, nil).CreateAsset(&txtest_u1, nil, "testString12345XXX")
+		txobj4.CreateReference(&assetgroup, &txobj2, 0)
 		txobj4.AddWitness(&txtest_u5).AddWitness(&txtest_u6)
 
 		/*
@@ -324,11 +332,11 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		refObj := obj4.References[0]
 		refObj.Add(nil, &txobj2, -1)
 
-		obj4.AddSignature(&txtest_u1, keypair, false)
-		obj4.AddSignature(&txtest_u2, keypair, false)
-		obj4.AddSignature(&txtest_u4, keypair, false)  // [5]
-		obj4.AddSignature(&txtest_u5, keypair, false)
-		obj4.AddSignature(&txtest_u6, keypair, false)
+		obj4.Sign(&txtest_u1, keypair, false)
+		obj4.Sign(&txtest_u2, keypair, false)
+		obj4.Sign(&txtest_u4, keypair, false)  // [5]
+		obj4.Sign(&txtest_u5, keypair, false)
+		obj4.Sign(&txtest_u6, keypair, false)
 		/*
 		t.Log("---------------transaction-----------------")
 		t.Logf("%v", obj4.Stringer())

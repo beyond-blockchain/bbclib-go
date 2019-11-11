@@ -106,15 +106,23 @@ func (p *BBcEvent) Add(assetGroupID *[]byte, asset *BBcAsset) {
 	}
 }
 
+// SetAssetGroup sets asset_group_id in the BBcEvent object
+func (p *BBcEvent) SetAssetGroup(assetGroupId *[]byte) *BBcEvent {
+	p.AssetGroupID = make([]byte, p.IdLengthConf.AssetGroupIdLength)
+	copy(p.AssetGroupID, (*assetGroupId)[:p.IdLengthConf.AssetGroupIdLength])
+	return p
+}
+
 // AddReferenceIndex sets an index to ReferenceIndices of the BBcEvent object
-func (p *BBcEvent) AddReferenceIndex(relIndex int) {
+func (p *BBcEvent) AddReferenceIndex(relIndex int) *BBcEvent {
 	if relIndex != -1 {
 		p.ReferenceIndices = append(p.ReferenceIndices, relIndex)
 	}
+	return p
 }
 
 // AddOptionParams sets values to OptionApproverNumNumerator and OptionApproverNumDenominator in the BBcEvent object
-func (p *BBcEvent) AddOptionParams(numerator int, denominator int) *BBcEvent {
+func (p *BBcEvent) SetOptionParams(numerator int, denominator int) *BBcEvent {
 	p.OptionApproverNumNumerator = uint16(numerator)
 	p.OptionApproverNumDenominator = uint16(denominator)
 	return p
@@ -137,7 +145,7 @@ func (p *BBcEvent) AddOptionApprover(userID *[]byte) *BBcEvent {
 }
 
 // Add sets essential information (assetGroupID and BBcAsset object) to the BBcEvent object
-func (p *BBcEvent) AddAsset(userId *[]byte, fileContent *[]byte, bodyContent interface{}) *BBcEvent {
+func (p *BBcEvent) CreateAsset(userId *[]byte, fileContent *[]byte, bodyContent interface{}) *BBcEvent {
 	obj := BBcAsset{Version: p.Version}
 	obj.SetIdLengthConf(p.IdLengthConf)
 	obj.Add(userId)

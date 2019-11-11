@@ -49,7 +49,7 @@ func TestEventPackUnpack(t *testing.T) {
 		obj.AddMandatoryApprover(&u1)
 		obj.AddMandatoryApprover(&u2)
 		obj.AddOptionApprover(&u3)
-		obj.AddOptionParams(1, 2)
+		obj.SetOptionParams(1, 2)
 
 		_, err := obj.Pack()
 		if err == nil {
