@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	//"github.com/beyond-blockchain/bbclib-go"
-	"main/bbclib"
+	"github.com/beyond-blockchain/bbclib-go"
+	//"main/bbclib"
 	"io/ioutil"
 	"time"
 )
