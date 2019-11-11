@@ -29,6 +29,7 @@ The BBcSignature holds public key and signature. The signature is for the Transa
 */
 type (
 	BBcSignature struct {
+		Version  	 uint32
 		KeyType      uint32
 		Pubkey       []byte
 		PubkeyLen    uint32
@@ -44,7 +45,11 @@ func (p *BBcSignature) Stringer() string {
 	}
 	ret := fmt.Sprintf("  key_type: %d\n", p.KeyType)
 	ret += fmt.Sprintf("  signature: %x\n", p.Signature)
-	ret += fmt.Sprintf("  pubkey: %x\n", p.Pubkey)
+	if p.Pubkey == nil {
+		ret += fmt.Sprintf("  pubkey: None\n")
+	} else {
+		ret += fmt.Sprintf("  pubkey: %x\n", p.Pubkey)
+	}
 	return ret
 }
 

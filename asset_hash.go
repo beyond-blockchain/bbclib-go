@@ -32,6 +32,7 @@ The length of "AssetID" is defined by "IDLength".
 type (
 	BBcAssetHash struct {
 		IdLengthConf      *BBcIdConfig
+		Version			  uint32
 		AssetIdNum        uint16
 		AssetIDs          [][]byte
 	}

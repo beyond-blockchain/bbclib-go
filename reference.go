@@ -39,6 +39,7 @@ The BBcReference is an input of UTXO (Unspent Transaction Output) structure and 
 type (
 	BBcReference struct {
 		IdLengthConf    *BBcIdConfig
+		Version 		uint32
 		AssetGroupID    []byte
 		TransactionID   []byte
 		EventIndexInRef uint16
@@ -80,7 +81,8 @@ func (p *BBcReference) Add(assetGroupID *[]byte, refTransaction *BBcTransaction,
 	}
 	if refTransaction != nil {
 		p.RefTransaction = refTransaction
-		p.TransactionID = refTransaction.TransactionID[:p.IdLengthConf.TransactionIdLength]
+		p.TransactionID = make([]byte, p.IdLengthConf.TransactionIdLength)
+		copy(p.TransactionID, refTransaction.TransactionID)
 		p.RefEvent = *p.RefTransaction.Events[p.EventIndexInRef]
 
 		if len(p.SigIndices) == 0 {
@@ -120,7 +122,7 @@ func (p *BBcReference) AddSignature(userID *[]byte, sig *BBcSignature) error {
 	}
 	for _, m := range p.RefEvent.MandatoryApprovers {
 		if reflect.DeepEqual(m, uid) {
-			p.Transaction.AddSignature(&uid, sig)
+			p.Transaction.AddSignatureObj(&uid, sig)
 			return nil
 		}
 	}
@@ -129,7 +131,7 @@ func (p *BBcReference) AddSignature(userID *[]byte, sig *BBcSignature) error {
 			u := make([]byte, p.Transaction.IdLengthConf.UserIdLength)
 			copy(u, p.sigIndicesOptions[0])
 			p.sigIndicesOptions = p.sigIndicesOptions[1:]
-			p.Transaction.AddSignature(&u, sig)
+			p.Transaction.AddSignatureObj(&u, sig)
 			return nil
 		}
 	}

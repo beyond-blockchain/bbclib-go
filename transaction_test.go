@@ -42,106 +42,44 @@ var (
 
 
 func makeBaseTx(idconf BBcIdConfig) BBcTransaction {
-	txobj := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
+	txobj := BBcTransaction{Version: 2, Timestamp: time.Now().UnixNano()}
 	txobj.SetIdLengthConf(&idconf)
-	keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
-	evt := BBcEvent{}
-	txobj.AddEvent(&evt)
-	crs := BBcCrossRef{}
-	txobj.AddCrossRef(&crs)
-	wit := BBcWitness{}
-	txobj.AddWitness(&wit)
-
-	ast := BBcAsset{}
-	ast.SetIdLengthConf(&idconf)
-	ast.Add(&txtest_u1)
-	ast.AddBodyString("testString12345XXX")
+	keyPair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
+	txobj.AddEvent(nil, nil)
 
 	assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
-	evt.Add(&assetgroup, &ast)
-
-	evt.AddMandatoryApprover(&txtest_u1)
-	evt.AddMandatoryApprover(&txtest_u2)
-	evt.AddOptionParams(1, 2)
-	evt.AddOptionApprover(&txtest_u3)
-	evt.AddOptionApprover(&txtest_u4)
-
 	dom := GetIdentifier("dummy domain", defaultIDLength)
 	dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
-	crs.Add(&dom, &dummyTxid)
-
-	wit.AddWitness(&txtest_u1)
-	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(keypair, txtest_u1, false)
-
+	txobj.Events[0].SetAssetGroup(&assetgroup).AddReferenceIndex(0).AddMandatoryApprover(&txtest_u1).AddMandatoryApprover(&txtest_u2).SetOptionParams(1, 2).AddOptionApprover(&txtest_u3).AddOptionApprover(&txtest_u4).CreateAsset(&txtest_u1, nil, "testString12345XXX")
+	txobj.CreateCrossRef(&dom, &dummyTxid)
+	txobj.AddWitness(&txtest_u1)
+	txobj.Sign(&txtest_u1, keyPair, false)
 	return txobj
 }
 
 func makeFollowTX(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcTransaction {
 	keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
-	txobj := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
+	txobj := BBcTransaction{Version: 2, Timestamp: time.Now().UnixNano()}
 	txobj.SetIdLengthConf(&idconf)
-	rtn := BBcRelation{}
-	txobj.AddRelation(&rtn)
-	ref := BBcReference{}
-	txobj.AddReference(&ref)
-	wit := BBcWitness{}
-	txobj.AddWitness(&wit)
-	crs := BBcCrossRef{}
-	txobj.AddCrossRef(&crs)
-
-	ast := BBcAsset{}
-	ast.SetIdLengthConf(&idconf)
-	ptr1 := BBcPointer{}
-	ptr1.SetIdLengthConf(&idconf)
-	ptr2 := BBcPointer{}
-	ptr2.SetIdLengthConf(&idconf)
+	txobj.AddRelation(nil)
 
 	assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
-	rtn.Add(&assetgroup, &ast)
-	rtn.AddPointer(&ptr1)
-	rtn.AddPointer(&ptr2)
-
-	ast.Add(&txtest_u1)
-	ast.AddBodyString("testString12345XXX")
-
 	txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
 	txid2 := GetIdentifierWithTimestamp("asdfauflkajethb;:a", defaultIDLength)
 	asid1 := GetIdentifier("123456789abcdef0123456789abcdef0", defaultIDLength)
-	ptr1.Add(&txid1, &asid1)
-	ptr2.Add(&txid2, nil)
-
-	wit.AddWitness(&txtest_u5)
-	ref.Add(&assetgroup, refTxObj, 0)
-	wit.AddWitness(&txtest_u6)
-
 	dom := GetIdentifier("dummy domain", defaultIDLength)
 	dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
-	crs.Add(&dom, &dummyTxid)
 
-	// old version (v1.4.2 or earlier)
-	sig := BBcSignature{}
-	sig.SetPublicKeyByKeypair(keypair)
-	signature, _ := txobj.Sign(keypair)
-	sig.SetSignature(&signature)
-	ref.AddSignature(&txtest_u1, &sig)
+	txobj.CreateCrossRef(&dom, &dummyTxid)
+	txobj.Relations[0].SetAssetGroup(&assetgroup).CreatePointer(&txid1, &asid1).CreatePointer(&txid2, nil).CreateAsset(&txtest_u1, nil, "testString12345XXX")
+	txobj.CreateReference(&assetgroup, refTxObj, 0)
+	txobj.AddWitness(&txtest_u5).AddWitness(&txtest_u6)
 
-	// old version (v1.4.2 or earlier)
-	sig6 := BBcSignature{}
-	sig6.SetPublicKeyByKeypair(keypair)
-	signature6, _ := txobj.Sign(keypair)
-	sig6.SetSignature(&signature6)
-	txobj.AddSignature(&txtest_u6, &sig6)
-
-	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(keypair, txtest_u2, false)
-
-	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(keypair, txtest_u5, false)
-
-	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(keypair, txtest_u4, false)
-
+	txobj.Sign(&txtest_u1, keypair, false)
+	txobj.Sign(&txtest_u2, keypair, false)
+	txobj.Sign(&txtest_u4, keypair, false)
+	txobj.Sign(&txtest_u5, keypair, false)
+	txobj.Sign(&txtest_u6, keypair, false)
 	return txobj
 }
 
@@ -149,67 +87,26 @@ func makeFollowTXWithAssetRaw(idconf BBcIdConfig, refTxObj *BBcTransaction) BBcT
 	keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 	txobj := BBcTransaction{Version: 2, Timestamp: time.Now().UnixNano()}
 	txobj.SetIdLengthConf(&idconf)
-	rtn := BBcRelation{}
-	txobj.AddRelation(&rtn)
-	ref := BBcReference{}
-	txobj.AddReference(&ref)
-	wit := BBcWitness{}
-	txobj.AddWitness(&wit)
-	crs := BBcCrossRef{}
-	txobj.AddCrossRef(&crs)
-
-	ast := BBcAssetRaw{}
-	ast.SetIdLengthConf(&idconf)
-	ptr1 := BBcPointer{}
-	ptr1.SetIdLengthConf(&idconf)
-	ptr2 := BBcPointer{}
-	ptr2.SetIdLengthConf(&idconf)
+	txobj.AddRelation(nil)
 
 	assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
-	rtn.AddAssetRaw(&assetgroup, &ast)
-	rtn.AddPointer(&ptr1)
-	rtn.AddPointer(&ptr2)
-
 	asid := GetIdentifier("user1_789abcdef0123456789abcdef0", idLengthConfig.AssetIdLength)
-	ast.AddBody(&asid,"testString12345XXX")
-
 	txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
 	txid2 := GetIdentifierWithTimestamp("asdfauflkajethb;:a", defaultIDLength)
 	asid1 := GetIdentifier("123456789abcdef0123456789abcdef0", defaultIDLength)
-	ptr1.Add(&txid1, &asid1)
-	ptr2.Add(&txid2, nil)
-
-	wit.AddWitness(&txtest_u5)
-	ref.Add(&assetgroup, refTxObj, 0)
-	wit.AddWitness(&txtest_u6)
-
 	dom := GetIdentifier("dummy domain", defaultIDLength)
 	dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
-	crs.Add(&dom, &dummyTxid)
 
-	// old version (v1.4.2 or earlier)
-	sig := BBcSignature{}
-	sig.SetPublicKeyByKeypair(keypair)
-	signature, _ := txobj.Sign(keypair)
-	sig.SetSignature(&signature)
-	ref.AddSignature(&txtest_u1, &sig)
+	txobj.CreateCrossRef(&dom, &dummyTxid)
+	txobj.Relations[0].SetAssetGroup(&assetgroup).CreatePointer(&txid1, &asid1).CreatePointer(&txid2, nil).CreateAssetRaw(&asid,"testString12345XXX")
+	txobj.CreateReference(&assetgroup, refTxObj, 0)
+	txobj.AddWitness(&txtest_u5).AddWitness(&txtest_u6)
 
-	// old version (v1.4.2 or earlier)
-	sig6 := BBcSignature{}
-	sig6.SetPublicKeyByKeypair(keypair)
-	signature6, _ := txobj.Sign(keypair)
-	sig6.SetSignature(&signature6)
-	txobj.AddSignature(&txtest_u6, &sig6)
-
-	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(keypair, txtest_u2, false)
-
-	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(keypair, txtest_u5, false)
-
-	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(keypair, txtest_u4, false)
-
+	txobj.Sign(&txtest_u1, keypair, false)
+	txobj.Sign(&txtest_u2, keypair, false)
+	txobj.Sign(&txtest_u4, keypair, false)
+	txobj.Sign(&txtest_u5, keypair, false)
+	txobj.Sign(&txtest_u6, keypair, false)
 	return txobj
 }
 
@@ -217,69 +114,29 @@ func makeFollowTXWithAssetHash(idconf BBcIdConfig, refTxObj *BBcTransaction) BBc
 	keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 	txobj := BBcTransaction{Version: 2, Timestamp: time.Now().UnixNano()}
 	txobj.SetIdLengthConf(&idconf)
-	rtn := BBcRelation{}
-	txobj.AddRelation(&rtn)
-	ref := BBcReference{}
-	txobj.AddReference(&ref)
-	wit := BBcWitness{}
-	txobj.AddWitness(&wit)
-	crs := BBcCrossRef{}
-	txobj.AddCrossRef(&crs)
-
-	ast := BBcAssetHash{}
-	ast.SetIdLengthConf(&idconf)
-	ptr1 := BBcPointer{}
-	ptr1.SetIdLengthConf(&idconf)
-	ptr2 := BBcPointer{}
-	ptr2.SetIdLengthConf(&idconf)
+	txobj.AddRelation(nil)
 
 	assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
-	rtn.AddAssetHash(&assetgroup, &ast)
-	rtn.AddPointer(&ptr1)
-	rtn.AddPointer(&ptr2)
-
-	for i := 0; i < 3; i++ {
-		asid := GetIdentifier(fmt.Sprintf("asset_id_%d", i), idLengthConfig.AssetIdLength)
-		ast.AddAssetId(&asid)
-	}
-
 	txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
 	txid2 := GetIdentifierWithTimestamp("asdfauflkajethb;:a", defaultIDLength)
 	asid1 := GetIdentifier("123456789abcdef0123456789abcdef0", defaultIDLength)
-	ptr1.Add(&txid1, &asid1)
-	ptr2.Add(&txid2, nil)
-
-	wit.AddWitness(&txtest_u5)
-	ref.Add(&assetgroup, refTxObj, 0)
-	wit.AddWitness(&txtest_u6)
-
 	dom := GetIdentifier("dummy domain", defaultIDLength)
 	dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
-	crs.Add(&dom, &dummyTxid)
 
-	// old version (v1.4.2 or earlier)
-	sig := BBcSignature{}
-	sig.SetPublicKeyByKeypair(keypair)
-	signature, _ := txobj.Sign(keypair)
-	sig.SetSignature(&signature)
-	ref.AddSignature(&txtest_u1, &sig)
+	txobj.CreateCrossRef(&dom, &dummyTxid)
+	txobj.Relations[0].SetAssetGroup(&assetgroup).CreatePointer(&txid1, &asid1).CreatePointer(&txid2, nil)
+	for i := 0; i < 3; i++ {
+		a := GetIdentifier(fmt.Sprintf("asset_id_%d", i), idLengthConfig.AssetIdLength)
+		txobj.Relations[0].CreateAssetHash(&a)
+	}
+	txobj.CreateReference(&assetgroup, refTxObj, 0)
+	txobj.AddWitness(&txtest_u5).AddWitness(&txtest_u6)
 
-	// old version (v1.4.2 or earlier)
-	sig6 := BBcSignature{}
-	sig6.SetPublicKeyByKeypair(keypair)
-	signature6, _ := txobj.Sign(keypair)
-	sig6.SetSignature(&signature6)
-	txobj.AddSignature(&txtest_u6, &sig6)
-
-	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(keypair, txtest_u2, false)
-
-	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(keypair, txtest_u5, false)
-
-	// new version (supported by v1.4.3 or later)
-	_ = txobj.SignAndAdd(keypair, txtest_u4, false)
-
+	txobj.Sign(&txtest_u1, keypair, false)
+	txobj.Sign(&txtest_u2, keypair, false)
+	txobj.Sign(&txtest_u4, keypair, false)
+	txobj.Sign(&txtest_u5, keypair, false)
+	txobj.Sign(&txtest_u6, keypair, false)
 	return txobj
 }
 
@@ -289,47 +146,20 @@ func TestTransactionPackUnpackSimple(t *testing.T) {
 		keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 		txobj := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
 		txobj.SetIdLengthConf(&idLengthConfig)
-		rtn := BBcRelation{}
-		txobj.AddRelation(&rtn)
-		wit := BBcWitness{}
-		txobj.AddWitness(&wit)
-		crs := BBcCrossRef{}
-		txobj.AddCrossRef(&crs)
-
-		ast := BBcAsset{}
-		ptr1 := BBcPointer{}
-		ptr2 := BBcPointer{}
+		txobj.AddRelation(nil)
 
 		assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
-		rtn.Add(&assetgroup, &ast)
-		rtn.AddPointer(&ptr1)
-		rtn.AddPointer(&ptr2)
-
-		ast.Add(&txtest_u1)
-		ast.AddBodyString("testString12345XXX")
-
 		txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
 		txid2 := GetIdentifierWithTimestamp("asdfauflkajethb;:a", defaultIDLength)
 		asid1 := GetIdentifier("123456789abcdef0123456789abcdef0", defaultIDLength)
-		ptr1.Add(&txid1, &asid1)
-		ptr2.Add(&txid2, nil)
-
-		wit.AddWitness(&txtest_u1)
-		wit.AddWitness(&txtest_u2)
-
 		dom := GetIdentifier("dummy domain", defaultIDLength)
 		dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
-		crs.Add(&dom, &dummyTxid)
 
-		// old version (v1.4.2 or earlier)
-		sig := BBcSignature{}
-		sig.SetPublicKeyByKeypair(keypair)
-		signature, _ := txobj.Sign(keypair)
-		sig.SetSignature(&signature)
-		wit.AddSignature(&txtest_u1, &sig)
-
-		// new version (supported by v1.4.3 or later)
-		_ = txobj.SignAndAdd(keypair, txtest_u2, false)
+		txobj.CreateCrossRef(&dom, &dummyTxid)
+		txobj.Relations[0].SetAssetGroup(&assetgroup).CreatePointer(&txid1, &asid1).CreatePointer(&txid2, nil).CreateAsset(&txtest_u1, nil, "testString12345XXX")
+		txobj.AddWitness(&txtest_u1).AddWitness(&txtest_u2)
+		txobj.Sign(&txtest_u1, keypair, false)
+		txobj.Sign(&txtest_u2, keypair, false)
 
 		/*
 		t.Log("---------------transaction-----------------")
@@ -386,7 +216,7 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		t.Log("---------------transaction-----------------")
 		t.Logf("%v", obj2.Stringer())
 		t.Log("--------------------------------------")
-		 */
+		*/
 
 		obj2.Digest()
 		if result := obj2.Signatures[0].Verify(obj2.TransactionID); !result {
@@ -403,62 +233,26 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 		txobj3 := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
 		txobj3.SetIdLengthConf(&idLengthConfig)
-		evt := BBcEvent{}
-		txobj3.AddEvent(&evt)
-		ref := BBcReference{}
-		txobj3.AddReference(&ref)
-		crs := BBcCrossRef{}
-		txobj3.AddCrossRef(&crs)
-
-		ast := BBcAsset{}
-		ast.SetIdLengthConf(&idLengthConfig)
-		ast.Add(&txtest_u1)
-		ast.AddBodyString("testString12345XXX")
+		txobj3.AddEvent(nil, nil)
 
 		assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
-		evt.Add(&assetgroup, &ast)
-
-		evt.AddMandatoryApprover(&txtest_u1)
-		evt.AddOptionParams(0, 0)
-
-		ref.Add(&assetgroup, &txobj2, 0)
-
 		dom := GetIdentifier("dummy domain", defaultIDLength)
 		dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
-		crs.Add(&dom, &dummyTxid)
 
-		sig := BBcSignature{}
-		sig.SetPublicKeyByKeypair(keypair)
-		signature, err := txobj3.Sign(keypair)
-		if err != nil {
-			t.Fatal(err)
-		}
-		sig.SetSignature(&signature)
-		ref.AddSignature(&txtest_u1, &sig)
-
-		sig2 := BBcSignature{}
-		sig2.SetPublicKeyByKeypair(keypair)
-		signature2, err := txobj3.Sign(keypair)
-		if err != nil {
-			t.Fatal(err)
-		}
-		sig2.SetSignature(&signature2)
-		ref.AddSignature(&txtest_u2, &sig2)
-
-		sig3 := BBcSignature{}
-		sig3.SetPublicKeyByKeypair(keypair)
-		signature3, err := txobj3.Sign(keypair)
-		if err != nil {
-			t.Fatal(err)
-		}
-		sig3.SetSignature(&signature3)
-		ref.AddSignature(&txtest_u4, &sig3)
+		txobj3.CreateCrossRef(&dom, &dummyTxid)
+		txobj3.Events[0].SetAssetGroup(&assetgroup).AddReferenceIndex(0).AddMandatoryApprover(&txtest_u1).AddMandatoryApprover(&txtest_u2).SetOptionParams(0, 0).CreateAsset(&txtest_u1, nil, "testString12345XXX")
+		txobj3.CreateReference(&assetgroup, &txobj2, 0)
+		txobj3.AddWitness(&txtest_u1).AddWitness(&txtest_u3)
+		txobj3.Sign(&txtest_u1, keypair, false)
+		txobj3.Sign(&txtest_u2, keypair, false)
+		txobj3.Sign(&txtest_u2, keypair, false)
+		//ref.Sign(&txtest_u2, &sig2)
 
 		/*
-		t.Log("---------------transaction-----------------")
-		t.Logf("%v", txobj3.Stringer())
-		t.Log("--------------------------------------")
-		 */
+			t.Log("---------------transaction-----------------")
+			t.Logf("%v", txobj3.Stringer())
+			t.Log("--------------------------------------")
+		*/
 
 		dat, err := txobj3.Pack()
 		if err != nil {
@@ -469,10 +263,10 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		obj2 := BBcTransaction{}
 		obj2.Unpack(&dat)
 		/*
-		t.Log("---------------transaction-----------------")
-		t.Logf("%v", obj2.Stringer())
-		t.Log("--------------------------------------")
-		 */
+			t.Log("---------------transaction-----------------")
+			t.Logf("%v", obj2.Stringer())
+			t.Log("--------------------------------------")
+		*/
 
 		obj2.Digest()
 		if result := obj2.Signatures[0].Verify(obj2.TransactionID); !result {
@@ -493,49 +287,26 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		keypair, _ := GenerateKeypair(KeyTypeEcdsaP256v1, DefaultCompressionMode)
 		txobj4 := BBcTransaction{Version: 1, Timestamp: time.Now().UnixNano()}
 		txobj4.SetIdLengthConf(&idLengthConfig)
-		rtn := BBcRelation{}
-		txobj4.AddRelation(&rtn)
-		ref := BBcReference{}
-		txobj4.AddReference(&ref)
-		wit := BBcWitness{}
-		txobj4.AddWitness(&wit)
-		crs := BBcCrossRef{}
-		txobj4.AddCrossRef(&crs)
+		txobj4.AddRelation(nil)
 
-		ast := BBcAsset{}
-		ast.SetIdLengthConf(&idLengthConfig)
-		ptr1 := BBcPointer{}
-		ptr1.SetIdLengthConf(&idLengthConfig)
-		ptr2 := BBcPointer{}
-		ptr2.SetIdLengthConf(&idLengthConfig)
 
 		assetgroup := GetIdentifier("asset_group_id1,,,,,,,", defaultIDLength)
-		rtn.Add(&assetgroup, &ast)
-		rtn.AddPointer(&ptr1)
-		rtn.AddPointer(&ptr2)
-
-		ast.Add(&txtest_u1)
-		ast.AddBodyString("testString12345XXX")
-
 		txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
 		txid2 := GetIdentifierWithTimestamp("asdfauflkajethb;:a", defaultIDLength)
 		asid1 := GetIdentifier("123456789abcdef0123456789abcdef0", defaultIDLength)
-		ptr1.Add(&txid1, &asid1)
-		ptr2.Add(&txid2, nil)
-
-		wit.AddWitness(&txtest_u5)
-		ref.Add(&assetgroup, &txobj2, 0)
-		wit.AddWitness(&txtest_u6)
-
 		dom := GetIdentifier("dummy domain", defaultIDLength)
 		dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
-		crs.Add(&dom, &dummyTxid)
+
+		txobj4.CreateCrossRef(&dom, &dummyTxid)
+		txobj4.Relations[0].SetAssetGroup(&assetgroup).CreatePointer(&txid1, &asid1).CreatePointer(&txid2, nil).CreateAsset(&txtest_u1, nil, "testString12345XXX")
+		txobj4.CreateReference(&assetgroup, &txobj2, 0)
+		txobj4.AddWitness(&txtest_u5).AddWitness(&txtest_u6)
 
 		/*
-		t.Log("---------------transaction-----------------")
-		t.Logf("%v", txobj4.Stringer())
-		t.Log("--------------------------------------")
-		 */
+			t.Log("---------------transaction-----------------")
+			t.Logf("%v", txobj4.Stringer())
+			t.Log("--------------------------------------")
+		*/
 		signum := len(txobj4.Signatures)
 		if signum != 5 {
 			t.Fatal("Invalid number of signatures")
@@ -561,59 +332,17 @@ func TestTransactionPackUnpackSimpleWithEvent(t *testing.T) {
 		refObj := obj4.References[0]
 		refObj.Add(nil, &txobj2, -1)
 
-		// old version (v1.4.2 or earlier)
-		sig := BBcSignature{}
-		sig.SetPublicKeyByKeypair(keypair)
-		signature, err := obj4.Sign(keypair)
-		if err != nil {
-			t.Fatal(err)
-		}
-		sig.SetSignature(&signature)
-		refObj.AddSignature(&txtest_u1, &sig)
-		ref.AddSignature(&txtest_u1, &sig)
-
-		// old version (v1.4.2 or earlier)
-		sig6 := BBcSignature{}
-		sig6.SetPublicKeyByKeypair(keypair)
-		signature6, err := obj4.Sign(keypair)
-		if err != nil {
-			t.Fatal(err)
-		}
-		sig6.SetSignature(&signature6)
-		obj4.AddSignature(&txtest_u6, &sig6)
-		txobj4.AddSignature(&txtest_u6, &sig6)
-
-		// old version only (v1.4.2 or earlier) Reference cannot use new version!!!
-		sig2 := BBcSignature{}
-		sig2.SetPublicKeyByKeypair(keypair)
-		signature2, err := obj4.Sign(keypair)
-		if err != nil {
-			t.Fatal(err)
-		}
-		sig2.SetSignature(&signature2)
-		refObj.AddSignature(&txtest_u2, &sig2)
-		ref.AddSignature(&txtest_u2, &sig2)
-
-		// new version (supported by v1.4.3 or later)
-		_ = txobj4.SignAndAdd(keypair, txtest_u5, false)
-		_ = obj4.SignAndAdd(keypair, txtest_u5, false)
-
-		// old version only (v1.4.2 or earlier) Reference cannot use new version!!!
-		sig4 := BBcSignature{}
-		sig4.SetPublicKeyByKeypair(keypair)
-		signature3, err := obj4.Sign(keypair)
-		if err != nil {
-			t.Fatal(err)
-		}
-		sig4.SetSignature(&signature3)
-		refObj.AddSignature(&txtest_u4, &sig4)
-		ref.AddSignature(&txtest_u4, &sig4)
-
+		obj4.Sign(&txtest_u1, keypair, false)
+		obj4.Sign(&txtest_u2, keypair, false)
+		obj4.Sign(&txtest_u4, keypair, false)  // [5]
+		obj4.Sign(&txtest_u5, keypair, false)
+		obj4.Sign(&txtest_u6, keypair, false)
 		/*
 		t.Log("---------------transaction-----------------")
 		t.Logf("%v", obj4.Stringer())
 		t.Log("--------------------------------------")
-		 */
+		*/
+
 		signum = len(obj4.Signatures)
 		if signum != 5 {
 			t.Fatal("Invalid number of signatures")
@@ -814,10 +543,10 @@ func TestTransactionWithAssetRawAndAssetHash(t *testing.T) {
 		d1 := txobj.Digest()
 		d2 := obj2.Digest()
 		/*
-		t.Log("---------------transaction-----------------")
-		t.Logf("%v", txobj.Stringer())
-		t.Log("--------------------------------------")
-		 */
+			t.Log("---------------transaction-----------------")
+			t.Logf("%v", txobj.Stringer())
+			t.Log("--------------------------------------")
+		*/
 		if bytes.Compare(d1, d2) != 0 {
 			t.Fatal("transaction_id mismatch")
 		}

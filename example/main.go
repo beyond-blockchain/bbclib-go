@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/beyond-blockchain/bbclib-go"
-	//"main/bbclib"
+	//"github.com/beyond-blockchain/bbclib-go"
+	"main/bbclib"
 	"io/ioutil"
 	"time"
 )
@@ -18,22 +18,17 @@ func makeTransaction(num int) *bbclib.BBcTransaction {
 	//keypair1 := bbclib.GenerateKeypair(bbclib.KeyTypeEcdsaP256v1, 4)
 	//keypair2 := bbclib.GenerateKeypair(bbclib.KeyTypeEcdsaP256v1, 4)
 
-	txobj := bbclib.MakeTransaction(3, 0, true)
 	bodyString := fmt.Sprintf("teststring!!!!:%d", num)
-	bbclib.AddEventAssetBodyString(txobj, 0, &assetGroupID, &u1, bodyString)
-	txobj.Events[0].AddMandatoryApprover(&u1)
 	filedat, _ := ioutil.ReadFile("./asset_test.go")
-	bbclib.AddEventAssetFile(txobj, 1, &assetGroupID, &u2, &filedat)
-	txobj.Events[1].AddMandatoryApprover(&u2)
 	datobj := map[string]string{"param1": "aaa", "param2": "bbb", "param3": string(num)}
-	bbclib.AddEventAssetBodyObject(txobj, 2, &assetGroupID, &u1, &datobj)
-	txobj.Events[2].AddMandatoryApprover(&u1)
 
-	txobj.Witness.AddWitness(&u1)
-	txobj.Witness.AddWitness(&u2)
+	txobj := bbclib.MakeTransaction(3, 0, true)
+	txobj.Events[0].SetAssetGroup(&assetGroupID).AddMandatoryApprover(&u1).CreateAsset(&u1, nil, bodyString)
+	txobj.Events[1].SetAssetGroup(&assetGroupID).AddMandatoryApprover(&u2).CreateAsset(&u2, &filedat, nil)
+	txobj.Events[2].SetAssetGroup(&assetGroupID).AddMandatoryApprover(&u1).CreateAsset(&u1, nil, &datobj)
+	txobj.AddWitness(&u1).AddWitness(&u2)
 
-	bbclib.SignToTransaction(txobj, &u1, keypair1)
-	bbclib.SignToTransaction(txobj, &u2, keypair2)
+	txobj.Sign(&u1, keypair1, false).Sign(&u2, keypair2, false)
 	return txobj
 }
 

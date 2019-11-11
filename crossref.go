@@ -34,6 +34,7 @@ CrossRef stands for CrossReference, which holds information in other domain for 
 type (
 	BBcCrossRef struct {
 		IdLengthConf  *BBcIdConfig
+		Version		  uint32
 		DomainID      []byte
 		TransactionID []byte
 	}

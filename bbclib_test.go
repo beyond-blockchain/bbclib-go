@@ -41,22 +41,19 @@ var (
 
 func makeBaseTxWithUtility() *BBcTransaction {
 	txobj = MakeTransaction(1, 0, true)
-	AddEventAssetBodyString(txobj, 0, &assetGroupID, &u1, "teststring!!!!!")
+	AddEventAssetBodyString(txobj, 0, &assetGroupID, &u1, "teststring!!!!!")  // old style
 	evt := txobj.Events[0]
 	evt.AddMandatoryApprover(&u1)
 	evt.AddMandatoryApprover(&u2)
-	evt.AddOptionParams(1, 2)
+	evt.SetOptionParams(1, 2)
 	evt.AddOptionApprover(&u3)
 	evt.AddOptionApprover(&u4)
 
-	crs := BBcCrossRef{}
-	txobj.AddCrossRef(&crs)
 	dom := GetIdentifier("dummy domain", defaultIDLength)
 	dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
-	crs.Add(&dom, &dummyTxid)
-	txobj.Crossref = &crs
+	txobj.CreateCrossRef(&dom, &dummyTxid)
 
-	txobj.Witness.AddWitness(&u1)
+	txobj.AddWitness(&u1)
 	SignToTransaction(txobj, &u1, keypair1)
 
 	return txobj
@@ -64,79 +61,67 @@ func makeBaseTxWithUtility() *BBcTransaction {
 
 func makeFollowTXWithUtility(refTxObj *BBcTransaction) *BBcTransaction {
 	txobj = MakeTransaction(0, 1, true)
-	AddRelationAssetBodyString(txobj, 0, &assetGroupID, &u1, "teststringXXXXXXXXX!!!!!")
+	AddRelationAssetBodyString(txobj, 0, &assetGroupID, &u1, "teststringXXXXXXXXX!!!!!") // old style
 
 	txid1 := GetIdentifier("0123456789abcdef0123456789abcdef", defaultIDLength)
 	txid2 := GetIdentifierWithTimestamp("asdfauflkajethb;:a", defaultIDLength)
 	asid1 := GetIdentifier("123456789abcdef0123456789abcdef0", defaultIDLength)
-	AddRelationPointer(txobj, 0, &txid1, &asid1)
-	AddRelationPointer(txobj, 0, &txid2, nil)
+	AddRelationPointer(txobj, 0, &txid1, &asid1) // old style
+	AddRelationPointer(txobj, 0, &txid2, nil) // old style
 
 	txobj.Witness.AddWitness(&u5)
-	AddReference(txobj, &assetGroupID, refTxObj, 0)
+	AddReference(txobj, &assetGroupID, refTxObj, 0) // old style
 	txobj.Witness.AddWitness(&u6)
 
-	crs := BBcCrossRef{}
-	txobj.AddCrossRef(&crs)
 	dom := GetIdentifier("dummy domain", defaultIDLength)
 	dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
-	crs.Add(&dom, &dummyTxid)
-	txobj.Crossref = &crs
+	txobj.CreateCrossRef(&dom, &dummyTxid)
 
-	SignToTransaction(txobj, &u1, keypair1)
-	SignToTransaction(txobj, &u6, keypair2)
-	SignToTransaction(txobj, &u2, keypair1)
-	SignToTransaction(txobj, &u5, keypair1)
-	SignToTransaction(txobj, &u4, keypair2)
+	SignToTransaction(txobj, &u1, keypair1) // old style
+	SignToTransaction(txobj, &u6, keypair2) // old style
+	SignToTransaction(txobj, &u2, keypair1) // old style
+	SignToTransaction(txobj, &u5, keypair1) // old style
+	SignToTransaction(txobj, &u4, keypair2) // old style
 
 	return txobj
 }
 
 
 func makeTransactions(conf BBcIdConfig, noPubkey bool) []*BBcTransaction {
-	ConfigureIdLength(&conf)
 	transactions := make([]*BBcTransaction, 20)
 
 	txobj := MakeTransaction(1, 1, true)
-	AddRelationAssetBodyString(txobj, 0, &AssetGroupID1, &UserID1, "relation:asset_0-0")
-	AddEventAssetBodyString(txobj, 0, &AssetGroupID1, &UserID1, "event:asset_0-0")
-	txobj.Events[0].AddMandatoryApprover(&UserID1)
-	txobj.Witness.AddWitness(&UserID1)
-	txobj.SignAndAdd(keypair1, UserID1, noPubkey)
+	txobj.SetIdLengthConf(&conf)
+	txobj.Relations[0].SetAssetGroup(&AssetGroupID1).CreateAsset(&UserID1, nil, "relation:asset_0-0")
+	txobj.Events[0].SetAssetGroup(&AssetGroupID1).AddMandatoryApprover(&UserID1).CreateAsset(&UserID1, nil, "event:asset_0-0")
+	txobj.AddWitness(&UserID1)
+	txobj.Sign(&UserID1, keypair1, noPubkey)
 	transactions[0] = txobj
 	//fmt.Println(txobj.Stringer())
 
 	for i:=1; i<20; i++ {
-		txobj = MakeTransaction(1, 4, true)
-		AddRelationAssetBodyString(txobj, 0, &AssetGroupID1, &UserID1, fmt.Sprintf("relation:asset_1-%d", i))
-		AddRelationPointer(txobj, 0, &transactions[i-1].TransactionID, &transactions[i-1].Relations[0].Asset.AssetID)
-		AddRelationAssetBodyString(txobj, 1, &AssetGroupID2, &UserID2, fmt.Sprintf("relation:asset_2-%d", i))
-		AddRelationPointer(txobj, 1, &transactions[i-1].TransactionID, &transactions[i-1].Relations[0].Asset.AssetID)
-		AddRelationPointer(txobj, 1, &transactions[0].TransactionID, &transactions[0].Relations[0].Asset.AssetID)
-		AddEventAssetBodyString(txobj, 0, &AssetGroupID1, &UserID2, fmt.Sprintf("event:asset_3-%d", i))
-		txobj.Events[0].AddMandatoryApprover(&UserID1)
-		AddReference(txobj, &AssetGroupID1, transactions[i-1], 0)
+		txobj := MakeTransaction(1, 4, true)
+		txobj.SetIdLengthConf(&conf)
+		txobj.Relations[0].SetAssetGroup(&AssetGroupID1).CreateAsset(&UserID1, nil, fmt.Sprintf("relation:asset_1-%d", i)).CreatePointer(&transactions[i-1].TransactionID, &transactions[i-1].Relations[0].Asset.AssetID)
+		txobj.Relations[1].SetAssetGroup(&AssetGroupID2).CreateAsset(&UserID2, nil, fmt.Sprintf("relation:asset_2-%d", i)).CreatePointer(&transactions[i-1].TransactionID, &transactions[i-1].Relations[0].Asset.AssetID).CreatePointer(&transactions[0].TransactionID, &transactions[0].Relations[0].Asset.AssetID)
+		txobj.Events[0].SetAssetGroup(&AssetGroupID1).CreateAsset(&UserID2, nil, fmt.Sprintf("event:asset_3-%d", i)).AddMandatoryApprover(&UserID1)
+		txobj.CreateReference(&AssetGroupID1, transactions[i-1], 0)
 
 		asid := GetIdentifier(fmt.Sprintf("asset_id_%d", i), conf.AssetIdLength)
-		AddRelationAssetRaw(txobj, 2, &AssetGroupID1, &asid, fmt.Sprintf("relation:asset_4-%d", i))
-		AddRelationPointer(txobj, 2, &transactions[0].TransactionID, &transactions[0].Relations[0].Asset.AssetID)
-		AddRelationPointer(txobj, 2, &transactions[0].TransactionID, nil)
 
-		AddRelationAssetHash(txobj, 3, &AssetGroupID2)
+		txobj.Relations[2].SetAssetGroup(&AssetGroupID1).CreateAssetRaw(&asid, fmt.Sprintf("relation:asset_4-%d", i)).CreatePointer(&transactions[0].TransactionID, &transactions[0].Relations[0].Asset.AssetID).CreatePointer(&transactions[0].TransactionID, nil)
+		txobj.Relations[3].SetAssetGroup(&AssetGroupID2).CreatePointer(&transactions[0].TransactionID, &transactions[0].Relations[0].Asset.AssetID)
 		for k:=0; k<4; k++ {
 			aid := GetIdentifier(fmt.Sprintf("asset_id_%d-%d", i, k), conf.AssetIdLength)
-			txobj.Relations[3].AssetHash.AddAssetId(&aid)
+			txobj.Relations[3].CreateAssetHash(&aid)
 		}
-		AddRelationPointer(txobj, 3, &transactions[0].TransactionID, &transactions[0].Relations[0].Asset.AssetID)
 
-		crossref := BBcCrossRef{}
-		txobj.AddCrossRef(&crossref)
-		crossref.Add(&DomainID, &transactions[0].TransactionID)
+		txobj.CreateCrossRef(&DomainID, &transactions[0].TransactionID)
 
-		txobj.Witness.AddWitness(&UserID1)
-		txobj.Witness.AddWitness(&UserID2)
-		txobj.SignAndAdd(keypair1, UserID1, noPubkey)
-		txobj.SignAndAdd(keypair2, UserID2, noPubkey)
+		txobj.AddWitness(&UserID1)
+		txobj.AddWitness(&UserID2)
+		txobj.Sign(&UserID1, keypair1, noPubkey)
+		txobj.Sign(&UserID2, keypair2, noPubkey)
 
 		transactions[i] = txobj
 		//fmt.Println(txobj.Stringer())
@@ -161,8 +146,8 @@ func TestBBcLibUtilitiesTx1(t *testing.T) {
 		AddEventAssetBodyObject(txobj, 2, &assetGroupID, &u1, &datobj)
 		txobj.Events[2].AddMandatoryApprover(&u1)
 
-		txobj.Witness.AddWitness(&u1)
-		txobj.Witness.AddWitness(&u2)
+		txobj.AddWitness(&u1)
+		txobj.AddWitness(&u2)
 
 		SignToTransaction(txobj, &u1, keypair1)
 		SignToTransaction(txobj, &u2, keypair2)
@@ -202,11 +187,9 @@ func TestBBcLibUtilitiesTx2(t *testing.T) {
 		AddReference(txobj2, &assetGroupID, txobj, 0)
 		AddReference(txobj2, &assetGroupID, txobj, 1)
 
-		crs := BBcCrossRef{}
-		txobj2.AddCrossRef(&crs)
 		dom := GetIdentifier("dummy domain", defaultIDLength)
 		dummyTxid := GetIdentifierWithTimestamp("dummytxid", defaultIDLength)
-		crs.Add(&dom, &dummyTxid)
+		txobj.CreateCrossRef(&dom, &dummyTxid)
 
 		SignToTransaction(txobj2, &u1, keypair1)
 		SignToTransaction(txobj2, &u2, keypair2)
@@ -247,15 +230,13 @@ func TestBBcLibUtilitiesTx3(t *testing.T) {
 		AddRelationAssetBodyObject(txobj3, 2, &assetGroupID, &u1, &datobj)
 
 		datobj2 := map[string]string{"param1": "lll", "param2": "gggg", "param3": "ddd"}
-		rtn := MakeRelationWithAsset(&assetGroupID, &u2, "", &datobj2, nil)
-		txobj3.AddRelation(rtn)
+		txobj3.Relations[2].SetAssetGroup(&assetGroupID).CreateAsset(&u2, nil, &datobj2).CreatePointer(&txobj.TransactionID, &txobj.Events[2].Asset.AssetID)
 
 		AddRelationPointer(txobj3, 0, &txobj.TransactionID, nil)
 		AddRelationPointer(txobj3, 1, &txobj2.TransactionID, &txobj2.Events[0].Asset.AssetID)
-		AddPointerInRelation(rtn, txobj, &txobj.Events[2].Asset.AssetID)
 
-		txobj3.Witness.AddWitness(&u1)
-		txobj3.Witness.AddWitness(&u2)
+		txobj3.AddWitness(&u1)
+		txobj3.AddWitness(&u2)
 
 		SignToTransaction(txobj3, &u1, keypair1)
 		SignToTransaction(txobj3, &u2, keypair2)
@@ -274,7 +255,11 @@ func TestBBcLibUtilitiesTx3(t *testing.T) {
 
 		obj2 := BBcTransaction{}
 		obj2.Unpack(&dat)
-		obj2.Digest()
+		/*
+		t.Log("-------------transaction--------------")
+		t.Logf("%v", obj2.Stringer())
+		t.Log("--------------------------------------")
+		*/
 
 		result, _ := obj2.VerifyAll()
 		if !result {
@@ -289,13 +274,12 @@ func TestBBcLibUtilitiesTx3(t *testing.T) {
 	})
 
 	t.Run("MakeTransaction and relations with BBcAssetRaw", func(t *testing.T) {
-		txobj4 := MakeTransaction(0, 1, true)
+		txobj4 := MakeTransaction(0, 2, true)
 		asid := GetIdentifier("user1_789abcdef0123456789abcdef0", 32)
 		AddRelationAssetRaw(txobj4, 0, &assetGroupID, &asid,"teststring!!!!!")
 
 		datobj2 := map[string]string{"param1": "lll", "param2": "gggg", "param3": "ddd"}
-		rtn := MakeRelationWithAsset(&assetGroupID, &u2, "", &datobj2, nil)
-		txobj4.AddRelation(rtn)
+		txobj4.Relations[1].SetAssetGroup(&assetGroupID).CreateAsset(&u2, nil, datobj2)
 
 		AddRelationPointer(txobj4, 0, &txobj.TransactionID, nil)
 		AddRelationPointer(txobj4, 1, &txobj2.TransactionID, &txobj2.Events[0].Asset.AssetID)
@@ -606,6 +590,7 @@ func TestBBcLibTester(t *testing.T) {
 		for idx:=0; idx<40; idx++ {
 			txobj := transactions[idx]
 			//fmt.Printf("idx=%d\n", idx)
+			//fmt.Print(txobj.Stringer())
 			if len(txobj.TransactionID) != idconf.TransactionIdLength {
 				panic("transaction_id length is invalid")
 			}
