@@ -1,7 +1,9 @@
 {
   "extends": [
     "config:base",
-    ":timezone(Asia/Tokyo)"
+    ":timezone(Asia/Tokyo)",
+    ":pinOnlyDevDependencies",
+    ":pinSkipCi"
   ],
   "assignees": ["quvox"],
   "patch": { "automerge": true },
