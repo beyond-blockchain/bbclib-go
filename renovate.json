@@ -8,5 +8,6 @@
   "assignees": ["quvox"],
   "patch": { "automerge": true },
   "minor": { "automerge": true },
-  "major": { "automerge": false }
+  "major": { "automerge": false },
+  "labels": ["update-dependencies"]
 }
